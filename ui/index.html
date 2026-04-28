@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sovereign Engine - System Control Plane</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/tailwindcss-cdn@3.4.1/tailwindcss.js"></script>
+    <style>
+        body {
+            background-color: #000000;
+            color: #E6D2B5;
+            font-family: monospace;
+        }
+        .border-sawdust {
+            border-color: #E6D2B5;
+        }
+        .text-sawdust {
+            color: #E6D2B5;
+        }
+        .bg-sawdust {
+            background-color: #E6D2B5;
+        }
+        .bg-sawdust-opacity {
+            background-color: rgba(230, 210, 181, 0.1);
+        }
+        .text-green-400 {
+            color: #4ade80;
+        }
+        .text-red-400 {
+            color: #f87171;
+        }
+        .text-yellow-400 {
+            color: #facc15;
+        }
+    </style>
+</head>
+<body class="bg-black text-sawdust font-mono min-h-screen">
+    <!-- Header -->
+    <header class="border-b border-sawdust p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">SYSTEM CONTROL PLANE</h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm" hx-get="/api/health/status" hx-trigger="every 10s">
+                    <span class="inline-block w-2 h-2 bg-green-400 rounded-full"></span>
+                    HEALTHY
+                </span>
+                <span class="text-sm" id="timestamp"></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-6">
+        <!-- Metrics Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="border border-sawdust p-4 bg-sawdust-opacity">
+                <h2 class="text-sm mb-2 opacity-75">ACTIVE DEPLOYMENTS</h2>
+                <div class="text-2xl font-bold" hx-get="/api/deployments/count" hx-trigger="every 5s">
+                    <span class="inline-block">--</span>
+                </div>
+            </div>
+            <div class="border border-sawdust p-4 bg-sawdust-opacity">
+                <h2 class="text-sm mb-2 opacity-75">MONTHLY COST</h2>
+                <div class="text-2xl font-bold">
+                    $<span hx-get="/api/cost/monthly" hx-trigger="every 60s">--</span>
+                </div>
+                <div class="text-xs mt-1 opacity-75">of $2,000 budget</div>
+            </div>
+            <div class="border border-sawdust p-4 bg-sawdust-opacity">
+                <h2 class="text-sm mb-2 opacity-75">DRIFT EVENTS</h2>
+                <div class="text-2xl font-bold" hx-get="/api/drift/count" hx-trigger="every 30s">
+                    <span class="inline-block">--</span>
+                </div>
+            </div>
+            <div class="border border-sawdust p-4 bg-sawdust-opacity">
+                <h2 class="text-sm mb-2 opacity-75">SECURITY ALERTS</h2>
+                <div class="text-2xl font-bold" hx-get="/api/security/alerts" hx-trigger="every 15s">
+                    <span class="inline-block">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="border border-sawdust p-4 mb-8">
+            <h2 class="text-lg mb-4">QUICK ACTIONS</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <button onclick="showDeployModal()" class="border border-sawdust p-3 hover:bg-sawdust-opacity transition-colors">
+                    <div class="text-sm">DEPLOY NEW</div>
+                </button>
+                <button hx-get="/api/deployments/refresh" hx-trigger="click" class="border border-sawdust p-3 hover:bg-sawdust-opacity transition-colors">
+                    <div class="text-sm">REFRESH STATUS</div>
+                </button>
+                <button hx-get="/api/drift/check" hx-trigger="click" class="border border-sawdust p-3 hover:bg-sawdust-opacity transition-colors">
+                    <div class="text-sm">CHECK DRIFT</div>
+                </button>
+                <button hx-get="/api/cost/report" hx-trigger="click" class="border border-sawdust p-3 hover:bg-sawdust-opacity transition-colors">
+                    <div class="text-sm">COST REPORT</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Deployments Table -->
+        <div class="border border-sawdust">
+            <div class="p-4 border-b border-sawdust">
+                <h2 class="text-lg">GLOBAL INVENTORY</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="border-b border-sawdust">
+                        <tr>
+                            <th class="p-4 text-left text-sm">ID</th>
+                            <th class="p-4 text-left text-sm">PROVIDER</th>
+                            <th class="p-4 text-left text-sm">TIER</th>
+                            <th class="p-4 text-left text-sm">REGION</th>
+                            <th class="p-4 text-left text-sm">STATUS</th>
+                            <th class="p-4 text-left text-sm">COST/MO</th>
+                            <th class="p-4 text-left text-sm">TEAM</th>
+                            <th class="p-4 text-left text-sm">DRIFT</th>
+                            <th class="p-4 text-left text-sm">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody hx-get="/api/deployments" hx-trigger="every 5s" hx-swap="innerHTML">
+                        <!-- Populated via HTMX -->
+                        <tr>
+                            <td colspan="9" class="p-8 text-center opacity-50">Loading deployments...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Cost Progress Bar -->
+        <div class="mt-8 border border-sawdust p-4">
+            <h2 class="text-lg mb-4">BUDGET UTILIZATION</h2>
+            <div class="space-y-4">
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span>Platform Team</span>
+                        <span hx-get="/api/cost/platform" hx-trigger="every 60s">$-- / $2,000</span>
+                    </div>
+                    <div class="w-full bg-gray-800 rounded-full h-2">
+                        <div class="bg-sawdust h-2 rounded-full" style="width: 0%" hx-get="/api/cost/platform/percent" hx-trigger="every 60s"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span>Engineering Team</span>
+                        <span hx-get="/api/cost/engineering" hx-trigger="every 60s">$-- / $1,500</span>
+                    </div>
+                    <div class="w-full bg-gray-800 rounded-full h-2">
+                        <div class="bg-sawdust h-2 rounded-full" style="width: 0%" hx-get="/api/cost/engineering/percent" hx-trigger="every 60s"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Deploy Modal -->
+    <div id="deployModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
+        <div class="border border-sawdust p-6 w-full max-w-md">
+            <h2 class="text-xl mb-4">DEPLOY NEW INSTANCE</h2>
+            <form hx-post="/api/deploy" hx-target="#deployResult">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm mb-1">Provider</label>
+                        <select name="provider" class="w-full bg-black border border-sawdust p-2 text-sawdust">
+                            <option value="">Select Provider</option>
+                            <option value="hetzner">Hetzner (Cost-Optimal)</option>
+                            <option value="digitalocean">DigitalOcean</option>
+                            <option value="ovh">OVHcloud</option>
+                            <option value="gcp">Google Cloud</option>
+                            <option value="azure">Azure</option>
+                            <option value="aws">AWS</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">Tier</label>
+                        <select name="tier" class="w-full bg-black border border-sawdust p-2 text-sawdust">
+                            <option value="micro">Micro (1GB RAM)</option>
+                            <option value="small">Small (2GB RAM)</option>
+                            <option value="pro">Pro (4GB RAM)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">Region</label>
+                        <input type="text" name="region" placeholder="us-east-1" class="w-full bg-black border border-sawdust p-2 text-sawdust">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">Budget Max ($)</label>
+                        <input type="number" name="budget" placeholder="500" class="w-full bg-black border border-sawdust p-2 text-sawdust">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">Team</label>
+                        <input type="text" name="team" placeholder="dev" class="w-full bg-black border border-sawdust p-2 text-sawdust">
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" name="manual" class="mr-2">
+                        <label class="text-sm">Manual Approval (Escape Hatch)</label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" onclick="hideDeployModal()" class="border border-sawdust p-2">CANCEL</button>
+                    <button type="submit" class="bg-sawdust text-black p-2">DEPLOY</button>
+                </div>
+            </form>
+            <div id="deployResult" class="mt-4"></div>
+        </div>
+    </div>
+
+    <script>
+        // Update timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            document.getElementById('timestamp').textContent = now.toISOString();
+        }
+        updateTimestamp();
+        setInterval(updateTimestamp, 1000);
+
+        // Modal functions
+        function showDeployModal() {
+            document.getElementById('deployModal').style.display = 'flex';
+        }
+
+        function hideDeployModal() {
+            document.getElementById('deployModal').style.display = 'none';
+        }
+
+        // Mock API responses for demonstration
+        document.addEventListener('htmx:afterRequest', function(event) {
+            const target = event.detail.target;
+            const url = event.detail.requestConfig.url;
+
+            // Mock responses for demo
+            if (url.includes('/api/deployments')) {
+                const mockDeployments = [
+                    {
+                        id: 'xcompute-123',
+                        provider: 'hetzner',
+                        tier: 'micro',
+                        region: 'nbg1',
+                        status: 'running',
+                        cost: 4.90,
+                        team: 'dev',
+                        drift: false
+                    },
+                    {
+                        id: 'xcompute-456',
+                        provider: 'azure',
+                        tier: 'small',
+                        region: 'westeurope',
+                        status: 'running',
+                        cost: 31.00,
+                        team: 'platform',
+                        drift: true
+                    }
+                ];
+
+                let html = '';
+                mockDeployments.forEach(dep => {
+                    const driftClass = dep.drift ? 'text-red-400' : 'text-green-400';
+                    html += `
+                        <tr class="border-t border-sawdust">
+                            <td class="p-4 text-sm">${dep.id}</td>
+                            <td class="p-4 text-sm">${dep.provider}</td>
+                            <td class="p-4 text-sm">${dep.tier}</td>
+                            <td class="p-4 text-sm">${dep.region}</td>
+                            <td class="p-4 text-sm text-green-400">${dep.status}</td>
+                            <td class="p-4 text-sm">$${dep.cost.toFixed(2)}</td>
+                            <td class="p-4 text-sm">${dep.team}</td>
+                            <td class="p-4 text-sm ${driftClass}">${dep.drift ? 'DRIFT' : 'OK'}</td>
+                            <td class="p-4 text-sm">
+                                <button class="border border-sawdust p-1 text-xs">ACTIONS</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                target.innerHTML = html;
+            }
+        });
+
+        // Initial load
+        setTimeout(() => {
+            const event = new CustomEvent('htmx:afterRequest', {
+                detail: {
+                    target: document.querySelector('tbody[hx-get="/api/deployments"]'),
+                    requestConfig: { url: '/api/deployments' }
+                }
+            });
+            document.dispatchEvent(event);
+        }, 100);
+    </script>
+</body>
+</html>
