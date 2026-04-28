@@ -1,0 +1,56 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xcomputes.engine.io
+spec:
+  group: engine.io
+  names:
+    kind: XCompute
+    plural: xcomputes
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            required: [provider, tier, region]
+            properties:
+              provider: 
+                type: string 
+                enum: [aws, azure, gcp, hetzner, ovh, digitalocean]
+                description: "Cloud provider to deploy on"
+              tier: 
+                type: string 
+                enum: [micro, small, pro]
+                description: "Compute tier (micro=1GB RAM, small=2GB RAM, pro=4GB RAM)"
+              region: 
+                type: string 
+                default: "us-east-1"
+                description: "Target region for deployment"
+              budget_max: 
+                type: number 
+                description: "Maximum monthly budget for this resource (FinOps guardrail)"
+              manual_approval: 
+                type: boolean
+                default: false
+                description: "Escape hatch for senior engineers to bypass abstraction"
+          status:
+            type: object
+            properties:
+              providerRef:
+                type: string
+                description: "Reference to the actual cloud resource"
+              currentCost:
+                type: number
+                description: "Current monthly cost"
+              lastReconciled:
+                type: string
+                format: date-time
+                description: "Last reconciliation timestamp"
+              driftDetected:
+                type: boolean
+                description: "Whether configuration drift has been detected"
