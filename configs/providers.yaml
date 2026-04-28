@@ -1,0 +1,41 @@
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-aws
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws:v0.40.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-azure
+spec:
+  package: xpkg.upbound.io/upbound/provider-azure:v0.40.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-gcp
+spec:
+  package: xpkg.upbound.io/upbound/provider-gcp:v0.40.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-hetzner
+spec:
+  package: xpkg.upbound.io/upbound/provider-jet-hetzner:v0.40.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-ovh
+spec:
+  package: xpkg.upbound.io/upbound/provider-jet-ovh:v0.40.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-digitalocean
+spec:
+  package: xpkg.upbound.io/upbound/provider-digitalocean:v0.40.0

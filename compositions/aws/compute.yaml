@@ -1,0 +1,54 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: aws-compute
+  labels:
+    provider: aws
+    engine.io/composition: compute
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: aws-instance
+    base:
+      apiVersion: ec2.aws.upbound.io/v1beta1
+      kind: Instance
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.tier"
+      toFieldPath: "metadata.labels[engine.io/tier]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.tier"
+      toFieldPath: "spec.forProvider.instanceType"
+      transforms:
+      - type: map
+        map:
+          micro: "t3.micro"
+          small: "t3.small"
+          pro: "c6i.large"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.ami"
+      transforms:
+      - type: map
+        map:
+          "us-east-1": "ami-0c55b159cbfafe1f0"
+          "us-west-2": "ami-0b5eea76982371e9b"
+          "eu-west-1": "ami-08ca3eda88f381d0f"
+      defaults:
+        "ami-0c55b159cbfafe1f0"
+    connectionDetails:
+    - name: instance-id
+      fromConnectionSecretKeyref:
+        namespace: crossplane-system
+        name: aws-instance-credentials
+        key: instance-id
+    - name: public-ip
+      fromConnectionSecretKeyref:
+        namespace: crossplane-system
+        name: aws-instance-credentials
+        key: public-ip

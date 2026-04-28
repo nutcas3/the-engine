@@ -1,0 +1,59 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: hetzner-compute
+  labels:
+    provider: hetzner
+    engine.io/composition: compute
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: hetzner-server
+    base:
+      apiVersion: server.hetzner.upbound.io/v1alpha1
+      kind: Server
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.tier"
+      toFieldPath: "metadata.labels[engine.io/tier]"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.tier"
+      toFieldPath: "spec.forProvider.serverType"
+      transforms:
+      - type: map
+        map:
+          micro: "cx11"
+          small: "cpx11"
+          pro: "cpx21"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.location"
+      transforms:
+      - type: map
+        map:
+          "us-east-1": "ash"
+          "europe": "nbg1"
+          "central": "hel1"
+      defaults:
+        "nbg1"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.image"
+      transforms:
+      - type: map
+        map:
+          "*": "ubuntu-22.04"
+    connectionDetails:
+    - name: server-id
+      fromConnectionSecretKeyref:
+        namespace: crossplane-system
+        name: hetzner-server-credentials
+        key: server-id
+    - name: public-ip
+      fromConnectionSecretKeyref:
+        namespace: crossplane-system
+        name: hetzner-server-credentials
+        key: public-ip
