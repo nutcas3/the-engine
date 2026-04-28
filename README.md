@@ -25,83 +25,113 @@ Cloudflare (Edge/DNS/WAF)
 
 ## Features
 
-### Core Capabilities
-- **Multi-Cloud Abstraction**: Single API for 6+ cloud providers
-- **Real-time FinOps**: Budget guardrails and cost optimization
-- **SLSA Security**: Image signing and vulnerability scanning
-- **Self-Healing**: Automatic drift detection and reconciliation
-- **Sovereign UI**: Minimalist HTMX dashboard with Vantablack theme
+### Implemented Capabilities
+- **Multi-Cloud Abstraction**: Single API for 6 cloud providers (AWS, Azure, GCP, Hetzner, OVH, DigitalOcean)
+- **Real-time FinOps**: Budget validation and cost estimation
+- **Provider Mapping**: Automatic tier-to-SKU translation for all clouds
+- **CLI Interface**: Kamal-like command-line tool for deployments
+- **Cost Guardrails**: Budget checking and automated optimization recommendations
 
-### Advanced Features
+### In Progress
+- **Cloud Compositions**: AWS and Hetzner compositions complete (Azure, GCP, OVH, DigitalOcean pending)
+- **UI Backend**: HTMX dashboard frontend complete (backend API in progress)
+- **Security**: SLSA verification framework implemented (full integration pending)
+
+### Planned Features
+- **Self-Healing**: Automatic drift detection and reconciliation
 - **Automated Thrift**: Intelligent tier downgrading for dev environments
-- **Ephemeral Environments**: PR-based deployments with auto-termination
 - **Multi-Cloud Resilience**: Automatic failover between providers
 - **Unified Observability**: LGTM stack integration
-- **Policy as Code**: OPA/Kyverno compliance enforcement
+- **Authentication**: OAuth2/OIDC and API key management
 
 ## Quick Start
 
 ### Prerequisites
-- k3s (lightweight Kubernetes)
-- Crossplane
 - Go 1.26+
-- Docker
-- UPX (for binary compression)
+- Docker (for container builds)
+- k3s (lightweight Kubernetes) - optional for local development
+- Crossplane - required for production deployment
 
-### Bootstrap
+### Local Development
 
 ```bash
-# 1. Clone and build
-git clone <repository-url>
+# 1. Clone the repository
+git clone https://github.com/nutcase/the-engine.git
 cd the-engine
+
+# 2. Install dependencies
+make install-deps
+
+# 3. Build the function binary
 make build
 
-# 2. Install k3s (minimal footprint)
+# 4. Run the function locally (development mode)
+make dev
+
+# 5. Test the CLI
+go run ./cmd/cli deploy --provider hetzner --tier micro --region nbg1
+go run ./cmd/cli cost --team platform
+go run ./cmd/cli drift-check
+```
+
+### Production Deployment
+
+```bash
+# 1. Install k3s (minimal footprint)
 curl -sfL https://get.k3s.io | sh -s - --disable traefik --disable servicelb
 
-# 3. Install Crossplane
+# 2. Install Crossplane
 helm repo add crossplane https://charts.crossplane.io/stable
 helm install crossplane crossplane/crossplane --namespace crossplane-system --create-namespace
 
-# 4. Install providers
+# 3. Install providers
 kubectl apply -f configs/providers.yaml
 
-# 5. Deploy the Engine
+# 4. Deploy the Engine API definitions
 kubectl apply -f apis/
-kubectl apply -f compositions/
 
-# 6. Build and deploy function
+# 5. Deploy compositions (AWS and Hetzner currently available)
+kubectl apply -f compositions/aws/
+kubectl apply -f compositions/hetzner/
+
+# 6. Build and deploy function container
 docker build -f build/Dockerfile.function -t engine/function:latest .
-kubectl apply -f deployments/
 ```
 
 ## Usage
 
 ### CLI Interface
 
+The CLI tool provides a Kamal-like interface for managing multi-cloud deployments.
+
 ```bash
-# Deploy new instance
-engine deploy --provider hetzner --tier micro --region nbg1
+# Deploy new instance (generates XRD manifest)
+go run ./cmd/cli deploy --provider hetzner --tier micro --region nbg1
 
 # Deploy with budget guardrails
-engine deploy --provider azure --tier pro --budget 500 --team platform
+go run ./cmd/cli deploy --provider azure --tier pro --budget 500 --team platform
 
-# List all deployments
-engine list --provider hetzner
+# List all deployments (mock data for development)
+go run ./cmd/cli list --provider hetzner
 
 # Check cost report
-engine cost --team platform
+go run ./cmd/cli cost --team platform
 
-# Check for configuration drift
-engine drift-check
+# Check for configuration drift (mock detection)
+go run ./cmd/cli drift-check
+
+# Get help
+go run ./cmd/cli help
 ```
+
+**Note**: The CLI currently generates XRD manifests and provides mock data for development. Full integration with Kubernetes and Crossplane is in progress.
 
 ### Web Dashboard
 
-Access the HTMX dashboard at `http://localhost:8080` for:
-- Real-time deployment status
-- Budget utilization monitoring
-- Drift detection alerts
+The HTMX dashboard frontend is implemented with the Vantablack/Sawdust sovereign theme. Backend API endpoints are currently being developed to provide real-time data for:
+- Deployment status monitoring
+- Budget utilization tracking
+- Configuration drift alerts
 - Quick deployment actions
 
 ## Architecture Components
@@ -135,16 +165,15 @@ The brain that maps intent to cloud resources with:
 | pro | c6i.large | Standard_D2s_v5 | n2-standard-2 | cpx21 | s1-8 | s-2vcpu-4gb |
 
 ### 4. FinOps Guardrails
-- **Budget Interception**: Block deployments exceeding team budgets
-- **Automated Thrift**: Downgrade dev environments to cost-effective providers
-- **Real-time Monitoring**: Track spend across all clouds
-- **Cost Recommendations**: Automated rightsizing suggestions
+- **Budget Validation**: Check deployments against team budgets before provisioning
+- **Cost Estimation**: Provide accurate cost estimates for different tiers and providers
+- **Spend Tracking**: Monitor current spend across all cloud providers (mock data currently)
+- **Cost Recommendations**: Automated suggestions for cost optimization
 
 ### 5. Security & Compliance
-- **SLSA Verification**: Cosign image signing validation
-- **CVE Scanning**: Automated vulnerability detection
-- **Policy Enforcement**: OPA-based compliance checking
-- **Supply Chain Security**: SBOM generation and attestation
+- **SLSA Framework**: Image verification framework implemented (Cosign integration pending)
+- **Security Verification**: Security check functions implemented (full integration pending)
+- **Policy Enforcement**: Policy validation framework ready (OPA integration planned)
 
 ## Development
 
@@ -185,14 +214,32 @@ make deploy
 # Install dependencies
 make install-deps
 
-# Run function locally
+# Run function locally (development mode)
 make dev
 
-# Build all components
+# Build optimized function binary
 make build
 
-# Test deployment locally
-docker run -p 8080:8080 engine/function:latest
+# Clean build artifacts
+make clean
+
+# Deploy to Kubernetes (when compositions are ready)
+make deploy
+```
+
+### Testing
+```bash
+# Run tests (test suite being developed)
+make test
+
+# Test FinOps functions
+go test ./internal/finops/
+
+# Test provider mapping
+go test ./internal/provider/
+
+# Test CLI commands
+go run ./cmd/cli deploy --provider hetzner --tier micro --region nbg1
 ```
 
 ## Configuration
@@ -226,13 +273,16 @@ teams:
 
 ## Monitoring & Observability
 
-### LGTM Stack Integration
+### Planned LGTM Stack Integration
+The platform is designed to integrate with the LGTM stack for comprehensive observability:
 - **Loki**: Centralized logs from all clouds
 - **Grafana**: Unified dashboards for multi-cloud metrics
 - **Tempo**: Distributed tracing across providers
 - **Mimir**: Scalable metrics storage
 
-### Key Metrics
+**Status**: Framework ready, integration planned for Phase 2
+
+### Key Metrics (Planned)
 - `engine_deployments_total` - Deployment count by provider
 - `engine_cost_monthly` - Monthly spend by team
 - `engine_drift_events` - Configuration drift occurrences
@@ -240,55 +290,84 @@ teams:
 
 ## Security
 
-### Supply Chain Security
-- **Cosign**: Image signing and verification
-- **SBOM**: Software Bill of Materials generation
-- **Attestations**: Cryptographic proof of build process
+### Supply Chain Security (Planned)
+- **Cosign**: Image signing and verification (framework implemented, integration pending)
+- **SBOM**: Software Bill of Materials generation (planned for Phase 5)
+- **Attestations**: Cryptographic proof of build process (planned)
 
-### Network Security
-- **Cloudflare WAF**: Edge protection for all endpoints
-- **Zero Trust**: JIT access with 1-hour expiration
-- **Private Networking**: VPC peering across providers
+### Network Security (Planned)
+- **Cloudflare WAF**: Edge protection for all endpoints (configuration planned)
+- **Zero Trust**: JIT access with 1-hour expiration (planned for Phase 3)
+- **Private Networking**: VPC peering across providers (planned)
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Provider Installation Failed**
+**Build Errors**
 ```bash
+# If go build fails, try cleaning and rebuilding
+make clean
+make install-deps
+make build
+```
+
+**CLI Not Working**
+```bash
+# Ensure you're running from the project root
+cd /path/to/the-engine
+go run ./cmd/cli help
+
+# Check Go version (requires 1.26+)
+go version
+```
+
+**Crossplane Provider Issues**
+```bash
+# Check provider status
 kubectl get providers
+
+# View provider logs
 kubectl logs -n crossplane-system deployment/provider-aws-ec2
 ```
 
-**Composition Function Error**
+**Function Deployment Issues**
 ```bash
-kubectl logs -n engine-system deployment/function
-kubectl apply --dry-run=client -f xcompute.yaml
-```
+# Check if function is running
+kubectl get pods -n engine-system
 
-**Budget Exceeded**
-```bash
-engine cost --team platform
-engine list --team platform
+# View function logs
+kubectl logs -n engine-system deployment/engine-function
+
+# Test with dry-run
+kubectl apply --dry-run=client -f apis/xcompute.yaml
 ```
 
 ## Performance
 
-### Optimization Techniques
-- **Binary Size**: `-ldflags="-s -w"` and UPX compression
+### Optimization Techniques (Implemented)
+- **Binary Size**: `-ldflags="-s -w"` and UPX compression for minimal footprint
 - **Memory**: k3s with minimal components (~100MB footprint)
+- **Efficient Mapping**: Direct tier-to-SKU translation without complex logic
+
+### Planned Optimizations
 - **Network**: Local registry for remote regions
 - **Caching**: Resource caching in Go function
+- **Connection Pooling**: Database and API connection optimization
 
-### Benchmarks
-| Operation | Latency (p50) | Latency (p99) |
-|-----------|---------------|---------------|
+### Benchmarks (Target)
+| Operation | Target Latency (p50) | Target Latency (p99) |
+|-----------|---------------------|---------------------|
 | Deploy XCompute | 2.3s | 5.1s |
 | Drift Detection | 500ms | 1.2s |
 | Cost Query | 200ms | 800ms |
 | Health Check | 50ms | 150ms |
 
+**Status**: Performance optimization planned for Phase 4
+
 ## Contributing
+
+We welcome contributions! Here's how to get started:
 
 1. Fork the repository
 2. Create feature branch (`git checkout -b feature/amazing-feature`)
@@ -298,6 +377,13 @@ engine list --team platform
 6. Push to branch (`git push origin feature/amazing-feature`)
 7. Open Pull Request
 
+### Contribution Guidelines
+- Follow the existing code style and patterns
+- Add tests for new features
+- Update documentation as needed
+- Check the [TODOs.md](TODOs.md) for prioritized tasks
+- Focus on high-priority items first (missing cloud compositions, UI backend, etc.)
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
@@ -306,7 +392,33 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 - **Issues**: https://github.com/your-org/the-engine/issues
 - **Discussions**: https://github.com/your-org/the-engine/discussions
-- **Documentation**: https://docs.the-engine.io
+- **Roadmap**: See [TODOs.md](TODOs.md) for detailed implementation plan
+- **Documentation**: See [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) for project overview
+
+## Current Status
+
+**Completed:**
+- ✅ Multi-cloud provider mapping (AWS, Azure, GCP, Hetzner, OVH, DigitalOcean)
+- ✅ FinOps budget validation and cost estimation
+- ✅ CLI tool with deploy, list, cost, and drift-check commands
+- ✅ Go composition function with budget guardrails
+- ✅ XRD API definition
+- ✅ AWS and Hetzner Crossplane compositions
+- ✅ Security verification framework
+- ✅ Optimized build pipeline with UPX compression
+
+**In Progress:**
+- 🔄 UI backend API endpoints
+- 🔄 Additional cloud compositions (Azure, GCP, OVH, DigitalOcean)
+- 🔄 Kubernetes deployment manifests
+- 🔄 Testing framework
+
+**Planned:**
+- 📋 Authentication and authorization
+- 📋 Database persistence
+- 📋 LGTM stack integration
+- 📋 CI/CD pipeline
+- 📋 Advanced security features
 
 ---
 
