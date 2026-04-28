@@ -101,10 +101,9 @@ func handleList() {
 	if cmd.Team != "" {
 		fmt.Printf(" for team %s", cmd.Team)
 	}
-	fmt.Println(":\n")
 
 	// Mock listing - in production would query actual deployments
-	deployments := []map[string]interface{}{
+	deployments := []map[string]any{
 		{
 			"id":       "xcompute-123",
 			"provider": "hetzner",
@@ -139,7 +138,7 @@ func handleCost() {
 	if cmd.Month != "" {
 		fmt.Printf(" for %s", cmd.Month)
 	}
-	fmt.Println(":\n")
+	fmt.Println(":")
 
 	// Get team budget and current spend
 	budget, err := finops.GetTeamBudget(context.Background(), cmd.Team)
@@ -178,10 +177,10 @@ func handleCost() {
 }
 
 func handleDriftCheck() {
-	fmt.Println("Checking for configuration drift...\n")
+	fmt.Println("Checking for configuration drift...")
 
 	// Mock drift detection - in production would check actual vs desired state
-	driftEvents := []map[string]interface{}{
+	driftEvents := []map[string]any{
 		{
 			"resource": "xcompute-123",
 			"type":     "configuration_drift",
@@ -287,13 +286,13 @@ func parseCostCommand() CostCommand {
 }
 
 func generateXComputeManifest(cmd DeployCommand) string {
-	manifest := map[string]interface{}{
+	manifest := map[string]any{
 		"apiVersion": "engine.io/v1alpha1",
 		"kind":       "XCompute",
-		"metadata": map[string]interface{}{
+		"metadata": map[string]any{
 			"name": fmt.Sprintf("%s-%s-%s", cmd.Team, cmd.Provider, cmd.Tier),
 		},
-		"spec": map[string]interface{}{
+		"spec": map[string]any{
 			"provider":        cmd.Provider,
 			"tier":            cmd.Tier,
 			"region":          cmd.Region,
