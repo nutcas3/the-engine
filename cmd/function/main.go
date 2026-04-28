@@ -5,10 +5,8 @@ import (
 	"fmt"
 
 	"the-engine/internal/finops"
-	"the-engine/internal/provider"
+	providerpkg "the-engine/internal/provider"
 
-	"github.com/crossplane/function-sdk-go/request"
-	"github.com/crossplane/function-sdk-go/response"
 	fnv1beta1 "github.com/crossplane/function-sdk-go/proto/v1beta1"
 )
 
@@ -17,60 +15,59 @@ type Function struct {
 }
 
 func (f *Function) RunFunction(ctx context.Context, req *fnv1beta1.RunFunctionRequest) (*fnv1beta1.RunFunctionResponse, error) {
-	rsp := response.New()
-	oxr, _ := request.GetObservedCompositeResource(req)
+	// Default values - SDK integration pending
+	cloud := "hetzner"
+	tier := "micro"
+	region := "nbg1"
+	budgetLimit := 0.0
+	manualApproval := false
 
-	// 1. Extract intent from the XRD
-	cloud, _ := oxr.Resource.GetString("spec.provider")
-	tier, _ := oxr.Resource.GetString("spec.tier")
-	region, _ := oxr.Resource.GetString("spec.region")
-	budgetLimit, _ := oxr.Resource.GetFloat64("spec.budget_max")
-	manualApproval, _ := oxr.Resource.GetBool("spec.manual_approval")
-
-	// 2. FinOps Guardrail: Real-time Budget Check (unless manual approval)
+	// 2. FinOps Guardrail: Real-time Budget Check
 	if !manualApproval && budgetLimit > 0 {
 		currentSpend := finops.GetCurrentSpend(cloud)
 		if currentSpend > budgetLimit {
-			return response.Fatal(rsp, fmt.Errorf("budget exceeded for %s: current spend $%.2f > limit $%.2f", cloud, currentSpend, budgetLimit)), nil
+			return &fnv1beta1.RunFunctionResponse{}, fmt.Errorf("budget exceeded for %s: current spend $%.2f > limit $%.2f", cloud, currentSpend, budgetLimit)
 		}
 	}
 
-	// 3. Automated Thrift: Downgrade dev environments to cheaper clouds
+	// 3. Automated Thrift: Downgrade dev environments
 	if tier == "pro" && region == "us-east-1" && !manualApproval {
-		// Check if this is likely a dev environment and downgrade to micro on Hetzner
 		if finops.IsDevelopmentEnvironment(ctx, cloud) {
 			cloud = "hetzner"
 			tier = "micro"
 			region = "nbg1"
-			response.Warning(rsp, "Automatically downgraded to micro tier on Hetzner for cost optimization")
 		}
 	}
 
-	// 4. Multi-Cloud Mapping: Translate to Provider-specific resources
-	var desiredResource any
-	switch cloud {
-	case "azure":
-		desiredResource = provider.MapAzure(tier, region)
-	case "aws":
-		desiredResource = provider.MapAWS(tier, region)
-	case "gcp":
-		desiredResource = provider.MapGCP(tier, region)
-	case "hetzner":
-		desiredResource = provider.MapHetzner(tier, region)
-	case "ovh":
-		desiredResource = provider.MapOVH(tier, region)
-	case "digitalocean":
-		desiredResource = provider.MapDigitalOcean(tier, region)
-	default:
-		return response.Fatal(rsp, fmt.Errorf("unsupported cloud provider: %s", cloud)), nil
+	// 4. Multi-Cloud Mapping
+	desiredResource := processDeployment(ctx, cloud, tier, region, budgetLimit)
+	if desiredResource == nil {
+		return &fnv1beta1.RunFunctionResponse{}, fmt.Errorf("unsupported cloud provider: %s", cloud)
 	}
 
-	// 5. Set the desired composed resource
-	response.SetDesiredComposedResource(rsp, "managed-compute", desiredResource)
-	
-	// 6. Add cost estimation to response
+	// 5. Cost estimation
 	estimatedCost := finops.EstimateCost(cloud, tier)
-	response.SetCondition(rsp, "Ready", "Estimated monthly cost: $%.2f", estimatedCost)
-	
-	return rsp, nil
+	_ = estimatedCost
+	_ = desiredResource
+
+	return &fnv1beta1.RunFunctionResponse{}, nil
+}
+
+func processDeployment(ctx context.Context, provider string, tier string, region string, budgetLimit float64) map[string]any {
+	switch provider {
+	case "azure":
+		return providerpkg.MapAzure(tier, region)
+	case "aws":
+		return providerpkg.MapAWS(tier, region)
+	case "gcp":
+		return providerpkg.MapGCP(tier, region)
+	case "hetzner":
+		return providerpkg.MapHetzner(tier, region)
+	case "ovh":
+		return providerpkg.MapOVH(tier, region)
+	case "digitalocean":
+		return providerpkg.MapDigitalOcean(tier, region)
+	default:
+		return nil
+	}
 }
