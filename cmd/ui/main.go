@@ -26,6 +26,14 @@ func main() {
 	http.HandleFunc("/api/stream", h.HandleSSE)
 	http.Handle("/api/swagger", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleSwagger)))
 
+	// Alert and cleanup endpoints
+	http.Handle("/api/alerts", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleAlerts)))
+	http.Handle("/api/cleanup/policies", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleCleanupPolicies)))
+	http.Handle("/api/cron/jobs", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleCronJobs)))
+	http.Handle("/api/nuke/operations", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleNukeOperations)))
+	http.Handle("/api/cleanup/shutdown", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleManualShutdown)))
+	http.Handle("/api/nuke/environment", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleManualNuke)))
+
 	// Start server
 	fmt.Println("Sovereign Engine UI Backend starting on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

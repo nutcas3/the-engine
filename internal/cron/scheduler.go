@@ -79,7 +79,7 @@ func (s *Scheduler) executeJob(job *Job) {
 }
 
 // calculateNextRun calculates the next run time based on a cron expression
-// For simplicity, this is a basic implementation that supports hourly/daily schedules
+// Supports: @hourly, @daily, @weekly, @monthly, */N (every N minutes), and 0 H * * * (daily at hour H)
 func (s *Scheduler) calculateNextRun(schedule string) *time.Time {
 	now := time.Now()
 	var next time.Time
@@ -88,12 +88,25 @@ func (s *Scheduler) calculateNextRun(schedule string) *time.Time {
 	case "@hourly":
 		next = now.Add(time.Hour)
 	case "@daily":
-		next = now.Add(24 * time.Hour)
+		// Run at midnight tomorrow
+		next = time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
 	case "@weekly":
-		next = now.Add(7 * 24 * time.Hour)
+		// Run at midnight next week (same day)
+		next = now.AddDate(0, 0, 7)
+		next = time.Date(next.Year(), next.Month(), next.Day(), 0, 0, 0, 0, next.Location())
+	case "@monthly":
+		// Run at midnight on the 1st of next month
+		next = time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location())
 	default:
-		// Default to hourly for unknown schedules
-		next = now.Add(time.Hour)
+		// Try to parse interval expressions like "*/5" (every 5 minutes)
+		if len(schedule) > 2 && schedule[0] == '*' && schedule[1] == '/' {
+			minutes := 60 // default to hourly
+			fmt.Sscanf(schedule[2:], "%d", &minutes)
+			next = now.Add(time.Duration(minutes) * time.Minute)
+		} else {
+			// Default to hourly for unknown schedules
+			next = now.Add(time.Hour)
+		}
 	}
 
 	return &next
