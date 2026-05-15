@@ -37,7 +37,7 @@ func (wc *WebhookClient) AddEndpoint(name, url string) {
 }
 
 func (wc *WebhookClient) RemoveEndpoint(name string) {
-	wc.endpoints[name] = ""
+	delete(wc.endpoints, name)
 }
 
 func (wc *WebhookClient) SendEvent(ctx context.Context, event WebhookEvent) error {
