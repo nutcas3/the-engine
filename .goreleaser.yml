@@ -4,7 +4,7 @@ before:
     - go mod tidy
 
 gomod:
-  proxy: true
+  proxy: false
 
 builds:
   - env: ["CGO_ENABLED=0"]
