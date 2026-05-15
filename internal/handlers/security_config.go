@@ -13,21 +13,21 @@ type SecurityConfig struct {
 	CosignKeyPath     string `json:"cosign_key_path"`
 	CosignEnableRekor bool   `json:"cosign_enable_rekor"`
 	CosignRekorURL    string `json:"cosign_rekor_url"`
-	
-	TrivyEnabled      bool     `json:"trivy_enabled"`
-	TrivyBinaryPath   string   `json:"trivy_binary_path"`
-	TrivyCacheDir     string   `json:"trivy_cache_dir"`
-	TrivySeverities   []string `json:"trivy_severities"`
-	TrivyTimeout      string   `json:"trivy_timeout"`
+
+	TrivyEnabled    bool     `json:"trivy_enabled"`
+	TrivyBinaryPath string   `json:"trivy_binary_path"`
+	TrivyCacheDir   string   `json:"trivy_cache_dir"`
+	TrivySeverities []string `json:"trivy_severities"`
+	TrivyTimeout    string   `json:"trivy_timeout"`
 }
 
 // HandleSecurityConfigForm returns HTML form for security configuration
 func (h *Handlers) HandleSecurityConfigForm(w http.ResponseWriter, r *http.Request) {
 	// Load current config (defaults)
 	config := h.loadSecurityConfig()
-	
+
 	var html strings.Builder
-	
+
 	html.WriteString(`
 <div class="space-y-6">
 	<div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
@@ -36,7 +36,7 @@ func (h *Handlers) HandleSecurityConfigForm(w http.ResponseWriter, r *http.Reque
 		</p>
 	</div>
 	
-	<form hx-post="/api/security/config" hx-target="#security-config-result" hx-swap="innerHTML" class="space-y-6">
+	<form hx-post="/api/security/save" hx-target="#security-config-result" hx-swap="innerHTML" class="space-y-6">
 		<!-- Cosign Configuration -->
 		<div class="border border-gray-200 dark:border-gray-700 rounded-lg p-5 bg-white dark:bg-gray-900">
 			<h4 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -189,10 +189,10 @@ func (h *Handlers) HandleSecurityConfigSave(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	// Parse form data
 	r.ParseForm()
-	
+
 	config := SecurityConfig{
 		CosignEnabled:     r.FormValue("cosign_enabled") == "on",
 		CosignKeyPath:     r.FormValue("cosign_key_path"),
@@ -204,10 +204,10 @@ func (h *Handlers) HandleSecurityConfigSave(w http.ResponseWriter, r *http.Reque
 		TrivySeverities:   r.Form["trivy_severities"],
 		TrivyTimeout:      r.FormValue("trivy_timeout"),
 	}
-	
+
 	// Save config (in memory for now, could be persisted to file/database)
 	h.cache.Set("security_config", config)
-	
+
 	// Return success message
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
@@ -234,7 +234,7 @@ func (h *Handlers) loadSecurityConfig() SecurityConfig {
 			return config
 		}
 	}
-	
+
 	// Load from environment variables with defaults
 	config := SecurityConfig{
 		CosignEnabled:     os.Getenv("ENGINE_SECURITY_COSIGN_ENABLED") == "true",
@@ -247,7 +247,7 @@ func (h *Handlers) loadSecurityConfig() SecurityConfig {
 		TrivySeverities:   []string{"CRITICAL", "HIGH"},
 		TrivyTimeout:      getEnvWithDefault("ENGINE_SECURITY_TRIVY_TIMEOUT", "5m"),
 	}
-	
+
 	return config
 }
 
