@@ -1,0 +1,179 @@
+# Cloudflare WAF Configuration for Sovereign Engine
+# This configuration provides security rules for the Sovereign Engine web interface
+
+# WAF Rule Sets
+waf_rulesets:
+  # OWASP Core Rule Set
+  - name: owasp_core_ruleset
+    enabled: true
+    description: OWASP ModSecurity Core Rule Set
+    rules:
+      - id: 100000
+        description: Request body is too large
+        action: block
+      - id: 100001
+        description: Request body is malformed
+        action: block
+      - id: 100002
+        description: Request headers are too large
+        action: block
+      - id: 100003
+        description: Request URL is too long
+        action: block
+      - id: 100004
+        description: Request is missing Accept header
+        action: block
+      - id: 100005
+        description: Request is missing User-Agent header
+        action: block
+      - id: 100010
+        description: SQL injection attack
+        action: block
+      - id: 100011
+        description: XSS attack
+        action: block
+      - id: 100012
+        description: File inclusion attack
+        action: block
+      - id: 100013
+        description: Remote code execution
+        action: block
+      - id: 100014
+        description: PHP injection
+        action: block
+
+  # Custom Rules for Sovereign Engine
+  - name: sovereign_engine_custom
+    enabled: true
+    description: Custom WAF rules for Sovereign Engine
+    rules:
+      - id: 200001
+        description: Block direct access to sensitive endpoints
+        match:
+          field: uri_path
+          pattern: "/api/(deployments|cost|health)"
+          operator: equals
+        action: allow
+      - id: 200002
+        description: Rate limiting for API endpoints
+        match:
+          field: request_rate
+          threshold: 100
+          period: 60
+        action: block
+      - id: 200003
+        description: Block requests with suspicious user agents
+        match:
+          field: user_agent
+          pattern: "(curl|wget|python|perl|ruby|java)"
+          operator: contains
+        action: block
+      - id: 200004
+        description: Protect against credential stuffing
+        match:
+          field: request_body
+          pattern: "(password|credential|token)"
+          operator: contains
+        action: log
+      - id: 200005
+        description: Block requests from known malicious IPs
+        match:
+          field: ip_address
+          source: cloudflare_threat_intel
+        action: block
+
+# Rate Limiting Rules
+rate_limits:
+  - name: api_rate_limit
+    enabled: true
+    description: Rate limit API endpoints
+    threshold: 100
+    period: 60
+    match:
+      field: uri_path
+      pattern: "/api/*"
+    action: block
+
+  - name: auth_rate_limit
+    enabled: true
+    description: Rate limit authentication endpoints
+    threshold: 10
+    period: 60
+    match:
+      field: uri_path
+      pattern: "/auth/*"
+    action: block
+
+  - name: cli_rate_limit
+    enabled: true
+    description: Rate limit CLI API calls
+    threshold: 50
+    period: 60
+    match:
+      field: user_agent
+      pattern: "engine-cli"
+      operator: contains
+    action: block
+
+# Bot Protection
+bot_protection:
+  enabled: true
+  rules:
+    - name: block_known_bots
+      enabled: true
+      description: Block known malicious bots
+      source: cloudflare_bot_management
+      action: block
+    - name: allow_good_bots
+      enabled: true
+      description: Allow verified good bots (Google, Bing, etc.)
+      source: cloudflare_bot_management
+      action: allow
+
+# IP Access Control
+ip_access_control:
+  enabled: true
+  rules:
+    - name: allow_internal_networks
+      enabled: true
+      description: Allow requests from internal networks
+      ranges:
+        - "10.0.0.0/8"
+        - "172.16.0.0/12"
+        - "192.168.0.0/16"
+      action: allow
+    - name: block_malicious_ips
+      enabled: true
+      description: Block known malicious IP ranges
+      source: cloudflare_threat_intel
+      action: block
+
+# Security Headers
+security_headers:
+  enabled: true
+  headers:
+    - name: X-Frame-Options
+      value: DENY
+    - name: X-Content-Type-Options
+      value: nosniff
+    - name: X-XSS-Protection
+      value: "1; mode=block"
+    - name: Strict-Transport-Security
+      value: "max-age=31536000; includeSubDomains"
+    - name: Content-Security-Policy
+      value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
+    - name: Referrer-Policy
+      value: strict-origin-when-cross-origin
+    - name: Permissions-Policy
+      value: "geolocation=(), microphone=(), camera=()"
+
+# HTTP/3 and TLS Configuration
+network:
+  http3:
+    enabled: true
+  tls:
+    min_version: "1.2"
+    ciphers:
+      - TLS_AES_128_GCM_SHA256
+      - TLS_AES_256_GCM_SHA384
+      - TLS_CHACHA20_POLY1305_SHA256
