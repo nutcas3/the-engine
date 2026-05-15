@@ -1,0 +1,30 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: shared-loadbalancer-compute
+  labels:
+    provider: shared
+    engine.io/composition: loadbalancer
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: haproxy-instance
+    base:
+      apiVersion: ec2.aws.upbound.io/v1beta1
+      kind: Instance
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.tier"
+      toFieldPath: "spec.forProvider.instanceType"
+      transforms:
+      - type: map
+        map:
+          micro: "t3.micro"
+          small: "t3.small"
+          pro: "t3.medium"
