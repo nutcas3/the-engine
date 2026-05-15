@@ -16,14 +16,14 @@ func main() {
 	// Initialize handlers
 	h := handlers.NewHandlers(k8sClient)
 
-	// Setup routes
+	// Setup routes with rate limiting for API endpoints
 	http.HandleFunc("/", h.HandleIndex)
-	http.HandleFunc("/api/deployments", h.HandleDeployments)
-	http.HandleFunc("/api/compositions", h.HandleCompositions)
-	http.HandleFunc("/api/cost/monthly", h.HandleCostMonthly)
-	http.HandleFunc("/api/health/status", h.HandleHealth)
+	http.Handle("/api/deployments", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleDeployments)))
+	http.Handle("/api/compositions", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleCompositions)))
+	http.Handle("/api/cost/monthly", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleCostMonthly)))
+	http.Handle("/api/health/status", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleHealth)))
 	http.HandleFunc("/api/stream", h.HandleSSE)
-	http.HandleFunc("/api/swagger", h.HandleSwagger)
+	http.Handle("/api/swagger", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleSwagger)))
 
 	// Start server
 	fmt.Println("Sovereign Engine UI Backend starting on :8080")
