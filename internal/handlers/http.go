@@ -13,6 +13,7 @@ import (
 	"the-engine/internal/finops"
 	"the-engine/internal/health"
 	"the-engine/internal/kubernetes"
+	"the-engine/internal/rate"
 	"the-engine/internal/types"
 )
 
@@ -21,6 +22,7 @@ type Handlers struct {
 	k8sClient     *kubernetes.Client
 	healthChecker *health.Checker
 	cache         *cache.Cache
+	RateLimiter   *rate.RateLimiter
 }
 
 // NewHandlers creates a new Handlers instance
@@ -29,92 +31,14 @@ func NewHandlers(k8sClient *kubernetes.Client) *Handlers {
 		k8sClient:     k8sClient,
 		healthChecker: health.NewChecker("1.0.0"),
 		cache:         cache.NewCache(5 * time.Minute),
+		RateLimiter:   rate.NewRateLimiter(100, 10), // 100 requests/sec, burst 10
 	}
 }
 
 // HandleIndex serves the main HTML page
 func (h *Handlers) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Sovereign Engine Dashboard</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-</head>
-<body class="bg-gray-100 min-h-screen p-8">
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-4xl font-bold text-gray-800 mb-8">Sovereign Engine Dashboard</h1>
-        
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Composition Selection</h2>
-            <div id="composition-selector" class="flex gap-4">
-                <select id="composition-select" class="border border-gray-300 rounded-md px-4 py-2 flex-1">
-                    <option value="">Select Composition</option>
-                </select>
-                <button hx-get="/api/compositions" hx-target="#composition-select" hx-swap="innerHTML" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-md transition-colors">
-                    Load Compositions
-                </button>
-            </div>
-        </div>
-        
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Deployments</h2>
-            <button hx-get="/api/deployments" hx-target="#deployments" hx-swap="innerHTML"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-md transition-colors mb-4">
-                Load Deployments
-            </button>
-            <div id="deployments" class="mt-4"></div>
-        </div>
-        
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Cost Data</h2>
-            <div class="flex gap-4 mb-4">
-                <input type="text" id="team-input" placeholder="Enter team name" value="platform"
-                    class="border border-gray-300 rounded-md px-4 py-2 flex-1">
-                <button hx-get="/api/cost/monthly?team=platform" hx-target="#cost" hx-swap="innerHTML" hx-include="#team-input"
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-md transition-colors">
-                    Load Cost Data
-                </button>
-            </div>
-            <div id="cost" class="mt-4"></div>
-        </div>
-        
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Health Status</h2>
-            <button hx-get="/api/health/status" hx-target="#health" hx-swap="innerHTML"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-md transition-colors mb-4">
-                Check Health
-            </button>
-            <div id="health" class="mt-4"></div>
-        </div>
-        
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Real-time Updates</h2>
-            <button onclick="connectSSE()"
-                class="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-md transition-colors mb-4">
-                Connect to SSE Stream
-            </button>
-            <div id="sse-output" class="mt-4"></div>
-        </div>
-    </div>
-    
-    <script>
-        function connectSSE() {
-            const eventSource = new EventSource('/api/stream');
-            eventSource.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                const output = document.getElementById('sse-output');
-                output.innerHTML += '<div class="bg-gray-50 rounded-md p-4 mb-2 border border-gray-200">' + 
-                    JSON.stringify(data, null, 2) + '</div>';
-            };
-        }
-    </script>
-</body>
-</html>
-`)
+	http.ServeFile(w, r, "web/index.html")
 }
 
 // HandleDeployments returns deployment data
