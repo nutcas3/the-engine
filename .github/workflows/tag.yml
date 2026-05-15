@@ -1,0 +1,73 @@
+name: Automated Tagging
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to tag (e.g., 0.2.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          if git describe --tags --abbrev=0 2>/dev/null; then
+            LATEST_TAG=$(git describe --tags --abbrev=0)
+            echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          else
+            echo "latest_tag=v0.0.0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine next version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            # Auto-increment based on conventional commits
+            LATEST="${{ steps.get_tag.outputs.latest_tag }}"
+            VERSION="${LATEST#v}"
+            
+            # Check for breaking changes
+            if git log --pretty=format:"%s" "tags/${LATEST}..HEAD" | grep -q "^feat!"; then
+              MAJOR=$(echo $VERSION | cut -d. -f1)
+              MINOR=$(echo $VERSION | cut -d. -f2)
+              PATCH=$(echo $VERSION | cut -d. -f3)
+              VERSION="$((MAJOR + 1)).0.0"
+            # Check for features
+            elif git log --pretty=format:"%s" "tags/${LATEST}..HEAD" | grep -q "^feat"; then
+              MAJOR=$(echo $VERSION | cut -d. -f1)
+              MINOR=$(echo $VERSION | cut -d. -f2)
+              PATCH=$(echo $VERSION | cut -d. -f3)
+              VERSION="$MAJOR.$((MINOR + 1)).0"
+            # Otherwise patch
+            else
+              MAJOR=$(echo $VERSION | cut -d. -f1)
+              MINOR=$(echo $VERSION | cut -d. -f2)
+              PATCH=$(echo $VERSION | cut -d. -f3)
+              VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+            fi
+          fi
+          echo "version=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.version }}" -m "Release ${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.version }}"
