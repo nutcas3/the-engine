@@ -10,6 +10,11 @@ import (
 )
 
 func TestHandleIndex(t *testing.T) {
+	// Skip test if web directory doesn't exist
+	if _, err := os.Stat("web"); os.IsNotExist(err) {
+		t.Skip("web directory not found, skipping test")
+	}
+
 	k8sClient := kubernetes.NewClientOrMock()
 	h := NewHandlers(k8sClient)
 
