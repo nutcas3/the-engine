@@ -2,7 +2,7 @@ package cleanup
 
 import (
 	"context"
-	"time"
+	"log"
 )
 
 // shouldExclude checks if a resource should be excluded from cleanup
@@ -55,23 +55,37 @@ func (cm *CleanupManager) shouldShutdown(ctx context.Context, resourceID string,
 	return false
 }
 
-// checkNoUserActivity checks if there has been no user activity
-func (cm *CleanupManager) checkNoUserActivity(ctx context.Context, environmentName string, threshold time.Duration) bool {
-	// In a real implementation, this would:
-	// 1. Check API logs for recent requests
-	// 2. Check authentication logs for recent logins
-	// 3. Check application logs for user activity
+func (cm *CleanupManager) shouldNuke(ctx context.Context, policy *CleanupPolicy) bool {
+	if policy.NukeAfter == 0 {
+		return false
+	}
 
-	_ = environmentName
-	_ = ctx
-	_ = threshold
+	switch policy.Environment {
+	case EnvironmentTest:
+		testsComplete := cm.checkTestsComplete(ctx, policy.Name)
+		noActivePipelines := cm.checkNoActivePipelines(ctx, policy.Name)
+		envIdle := cm.checkEnvironmentIdle(ctx, policy.Name, policy.NukeAfter)
 
-	// In production, integrate with your logging/monitoring system:
-	// - CloudWatch Logs: Query for recent API calls
-	// - Datadog: Check recent events
-	// - Prometheus: Query request metrics
-	// - Custom: Check your application logs
+		log.Printf("Evaluating nuke for test environment %s: testsComplete=%v noActivePipelines=%v envIdle=%v",
+			policy.Name, testsComplete, noActivePipelines, envIdle)
 
-	// For now, return true to enable the nuke logic
-	return true
+		return testsComplete && noActivePipelines && envIdle
+
+	case EnvironmentDev:
+		noRecentDeployments := cm.checkNoRecentDeployments(ctx, policy.Name, policy.NukeAfter)
+		noActiveResources := cm.checkNoActiveResources(ctx, policy.Name)
+		noUserActivity := cm.checkNoUserActivity(ctx, policy.Name, policy.NukeAfter)
+
+		log.Printf("Evaluating nuke for dev environment %s: noDeployments=%v noResources=%v noUserActivity=%v",
+			policy.Name, noRecentDeployments, noActiveResources, noUserActivity)
+
+		return noRecentDeployments && noActiveResources && noUserActivity
+
+	case EnvironmentProd, EnvironmentStaging:
+		return false
+
+	default:
+		log.Printf("Unknown environment type %s for policy %s; skipping nuke", policy.Environment, policy.Name)
+		return false
+	}
 }
