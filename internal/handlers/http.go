@@ -85,7 +85,30 @@ func (h *Handlers) HandleSwagger(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(spec)
 }
 
-// HandleCostMonthly returns cost data
+// HandleCostEstimate returns cost estimation for provider and tier
+func (h *Handlers) HandleCostEstimate(w http.ResponseWriter, r *http.Request) {
+	provider := r.URL.Query().Get("provider")
+	tier := r.URL.Query().Get("tier")
+
+	if provider == "" || tier == "" {
+		http.Error(w, "provider and tier parameters required", http.StatusBadRequest)
+		return
+	}
+
+	cost := finops.EstimateCost(provider, tier)
+
+	response := map[string]interface{}{
+		"provider":     provider,
+		"tier":         tier,
+		"monthly_cost": cost,
+		"hourly_cost":  cost / 730, // Approximate hours in a month
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// HandleCostMonthly returns comprehensive cost data
 func (h *Handlers) HandleCostMonthly(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	team := r.URL.Query().Get("team")
@@ -108,12 +131,24 @@ func (h *Handlers) HandleCostMonthly(w http.ResponseWriter, r *http.Request) {
 		utilization = (currentSpend / budget) * 100
 	}
 
+	// Get cost recommendations
+	recommendations := finops.GetCostRecommendations(ctx, team)
+
+	// Get provider cost comparison
+	providers := []string{"aws", "azure", "gcp", "hetzner", "ovh", "digitalocean"}
+	providerCosts := make(map[string]float64)
+	for _, provider := range providers {
+		providerCosts[provider] = finops.GetCurrentSpend(provider)
+	}
+
 	response := types.CostResponse{
-		Team:         team,
-		MonthlySpend: currentSpend,
-		Budget:       budget,
-		Utilization:  utilization,
-		LastUpdated:  time.Now().Format(time.RFC3339),
+		Team:            team,
+		MonthlySpend:    currentSpend,
+		Budget:          budget,
+		Utilization:     utilization,
+		LastUpdated:     time.Now().Format(time.RFC3339),
+		Recommendations: recommendations,
+		ProviderCosts:   providerCosts,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
