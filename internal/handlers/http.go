@@ -8,33 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"the-engine/internal/cache"
+	"the-engine/internal/alerts"
 	"the-engine/internal/compositions"
 	"the-engine/internal/docs"
 	"the-engine/internal/finops"
-	"the-engine/internal/health"
-	"the-engine/internal/kubernetes"
-	"the-engine/internal/rate"
 	"the-engine/internal/types"
 )
-
-// Handlers holds the dependencies for HTTP handlers
-type Handlers struct {
-	k8sClient     *kubernetes.Client
-	healthChecker *health.Checker
-	cache         *cache.Cache
-	RateLimiter   *rate.RateLimiter
-}
-
-// NewHandlers creates a new Handlers instance
-func NewHandlers(k8sClient *kubernetes.Client) *Handlers {
-	return &Handlers{
-		k8sClient:     k8sClient,
-		healthChecker: health.NewChecker("1.0.0"),
-		cache:         cache.NewCache(5 * time.Minute),
-		RateLimiter:   rate.NewRateLimiter(100, 10), // 100 requests/sec, burst 10
-	}
-}
 
 // HandleIndex serves the main HTML page
 func (h *Handlers) HandleIndex(w http.ResponseWriter, r *http.Request) {
@@ -42,11 +21,17 @@ func (h *Handlers) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "web/index.html")
 }
 
+// HandleSwagger returns OpenAPI specification
+func (h *Handlers) HandleSwagger(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	spec := docs.GetSpec()
+	json.NewEncoder(w).Encode(spec)
+}
+
 // HandleDeployments returns deployment data
 func (h *Handlers) HandleDeployments(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	// Try to get real deployments from Kubernetes if available
 	if h.k8sClient != nil {
 		realDeployments, err := h.k8sClient.GetDeployments()
 		if err == nil && len(realDeployments) > 0 {
@@ -55,7 +40,6 @@ func (h *Handlers) HandleDeployments(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Fallback to empty array if no data
 	json.NewEncoder(w).Encode([]types.Deployment{})
 }
 
@@ -63,7 +47,6 @@ func (h *Handlers) HandleDeployments(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) HandleCompositions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	// Try cache first
 	if cached, found := h.cache.Get("compositions"); found {
 		json.NewEncoder(w).Encode(cached)
 		return
@@ -77,13 +60,6 @@ func (h *Handlers) HandleCompositions(w http.ResponseWriter, r *http.Request) {
 
 	h.cache.Set("compositions", compositionList)
 	json.NewEncoder(w).Encode(compositionList)
-}
-
-// HandleSwagger returns OpenAPI specification
-func (h *Handlers) HandleSwagger(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	spec := docs.GetSpec()
-	json.NewEncoder(w).Encode(spec)
 }
 
 // HandleCostEstimate returns cost estimation for provider and tier
@@ -102,7 +78,7 @@ func (h *Handlers) HandleCostEstimate(w http.ResponseWriter, r *http.Request) {
 		"provider":     provider,
 		"tier":         tier,
 		"monthly_cost": cost,
-		"hourly_cost":  cost / 730, // Approximate hours in a month
+		"hourly_cost":  cost / 730,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -132,17 +108,14 @@ func (h *Handlers) HandleCostMonthly(w http.ResponseWriter, r *http.Request) {
 		utilization = (currentSpend / budget) * 100
 	}
 
-	// Get cost recommendations
 	recommendations := finops.GetCostRecommendations(ctx, team)
 
-	// Get provider cost comparison
 	providers := []string{"aws", "azure", "gcp", "hetzner", "ovh", "digitalocean"}
 	providerCosts := make(map[string]float64)
 	for _, provider := range providers {
 		providerCosts[provider] = finops.GetCurrentSpend(provider)
 	}
 
-	// Generate HTML response
 	var html strings.Builder
 	html.WriteString(fmt.Sprintf(`
 <div class="space-y-4">
@@ -241,4 +214,97 @@ func (h *Handlers) HandleSSE(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 	}
+}
+
+// HandleAlerts returns alert data
+func (h *Handlers) HandleAlerts(w http.ResponseWriter, r *http.Request) {
+	environment := r.URL.Query().Get("environment")
+
+	var alerts []*alerts.Alert
+	if environment != "" {
+		alerts = h.alertManager.GetAlertsByEnvironment(environment)
+	} else {
+		alerts = h.alertManager.GetAlerts()
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(alerts)
+}
+
+// HandleCleanupPolicies returns cleanup policies
+func (h *Handlers) HandleCleanupPolicies(w http.ResponseWriter, r *http.Request) {
+	policies := h.cleanupManager.GetPolicies()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(policies)
+}
+
+// HandleCronJobs returns cron jobs
+func (h *Handlers) HandleCronJobs(w http.ResponseWriter, r *http.Request) {
+	jobs := h.cronScheduler.GetJobs()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(jobs)
+}
+
+// HandleNukeOperations returns nuke operations
+func (h *Handlers) HandleNukeOperations(w http.ResponseWriter, r *http.Request) {
+	operations := h.nukeManager.GetOperations()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(operations)
+}
+
+// HandleManualShutdown manually triggers shutdown of a resource
+func (h *Handlers) HandleManualShutdown(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Provider   string `json:"provider"`
+		ResourceID string `json:"resource_id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err := h.cleanupManager.ManualShutdown(context.Background(), request.Provider, request.ResourceID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "shutdown initiated"})
+}
+
+// HandleManualNuke manually triggers nuking of an environment
+func (h *Handlers) HandleManualNuke(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Environment string `json:"environment"`
+		Provider    string `json:"provider"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	operation, err := h.nukeManager.NukeEnvironment(context.Background(), request.Environment, request.Provider)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(operation)
 }
