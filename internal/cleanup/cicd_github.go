@@ -25,7 +25,7 @@ func (cm *CleanupManager) checkGitHubTestsComplete(ctx context.Context, environm
 	}
 
 	url := fmt.Sprintf("https://api.github.com/repos/%s/actions/runs?per_page=10&status=completed", repo)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		log.Printf("Failed to create GitHub API request: %v", err)

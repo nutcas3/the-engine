@@ -9,7 +9,7 @@ import (
 func (c *Checker) checkExternalAPIs() ComponentHealth {
 	client := http.Client{Timeout: 2 * time.Second}
 	resp, err := client.Get("https://httpbin.org/status/200")
-	
+
 	if err != nil {
 		return ComponentHealth{
 			Name:      "external_apis",
@@ -19,7 +19,7 @@ func (c *Checker) checkExternalAPIs() ComponentHealth {
 		}
 	}
 	defer resp.Body.Close()
-	
+
 	return ComponentHealth{
 		Name:      "external_apis",
 		Status:    StatusHealthy,

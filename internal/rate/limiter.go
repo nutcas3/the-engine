@@ -10,8 +10,8 @@ import (
 type RateLimiter struct {
 	mu           sync.Mutex
 	tokens       map[string]*tokenBucket
-	rate         int           // tokens per second
-	burst        int           // max tokens
+	rate         int // tokens per second
+	burst        int // max tokens
 	cleanupTimer *time.Timer
 }
 
@@ -28,10 +28,10 @@ func NewRateLimiter(rate, burst int) *RateLimiter {
 		rate:   rate,
 		burst:  burst,
 	}
-	
+
 	// Start cleanup routine
 	rl.startCleanup()
-	
+
 	return rl
 }
 
@@ -39,12 +39,12 @@ func NewRateLimiter(rate, burst int) *RateLimiter {
 func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := r.RemoteAddr // In production, use user ID or API key
-		
+
 		if !rl.allow(key) {
 			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -53,10 +53,10 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 func (rl *RateLimiter) allow(key string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
-	
+
 	now := time.Now()
 	bucket, exists := rl.tokens[key]
-	
+
 	if !exists {
 		bucket = &tokenBucket{
 			tokens:     float64(rl.burst),
@@ -64,24 +64,24 @@ func (rl *RateLimiter) allow(key string) bool {
 		}
 		rl.tokens[key] = bucket
 	}
-	
+
 	// Add tokens based on elapsed time
 	elapsed := now.Sub(bucket.lastUpdate).Seconds()
 	bucket.tokens += elapsed * float64(rl.rate)
-	
+
 	// Cap at burst size
 	if bucket.tokens > float64(rl.burst) {
 		bucket.tokens = float64(rl.burst)
 	}
-	
+
 	bucket.lastUpdate = now
-	
+
 	// Check if we have enough tokens
 	if bucket.tokens >= 1 {
 		bucket.tokens -= 1
 		return true
 	}
-	
+
 	return false
 }
 
@@ -97,7 +97,7 @@ func (rl *RateLimiter) startCleanup() {
 func (rl *RateLimiter) cleanup() {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
-	
+
 	now := time.Now()
 	for key, bucket := range rl.tokens {
 		if now.Sub(bucket.lastUpdate) > 10*time.Minute {

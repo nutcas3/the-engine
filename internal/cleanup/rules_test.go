@@ -129,9 +129,9 @@ func TestShouldShutdown(t *testing.T) {
 		{
 			name: "auto shutdown disabled",
 			policy: &CleanupPolicy{
-				Name:         "test-policy",
-				Environment:  EnvironmentTest,
-				AutoShutdown: false,
+				Name:          "test-policy",
+				Environment:   EnvironmentTest,
+				AutoShutdown:  false,
 				ShutdownAfter: 3600,
 			},
 			resource: "test-resource",
@@ -140,9 +140,9 @@ func TestShouldShutdown(t *testing.T) {
 		{
 			name: "shutdown after is zero",
 			policy: &CleanupPolicy{
-				Name:         "test-policy",
-				Environment:  EnvironmentTest,
-				AutoShutdown: true,
+				Name:          "test-policy",
+				Environment:   EnvironmentTest,
+				AutoShutdown:  true,
 				ShutdownAfter: 0,
 			},
 			resource: "test-resource",
@@ -182,45 +182,45 @@ func TestShouldNuke(t *testing.T) {
 		{
 			name: "nuke after is zero",
 			policy: &CleanupPolicy{
-				Name:       "test-policy",
+				Name:        "test-policy",
 				Environment: EnvironmentTest,
-				NukeAfter:  0,
+				NukeAfter:   0,
 			},
 			want: false,
 		},
 		{
 			name: "production environment",
 			policy: &CleanupPolicy{
-				Name:       "prod-policy",
+				Name:        "prod-policy",
 				Environment: EnvironmentProd,
-				NukeAfter:  86400,
+				NukeAfter:   86400,
 			},
 			want: false,
 		},
 		{
 			name: "staging environment",
 			policy: &CleanupPolicy{
-				Name:       "staging-policy",
+				Name:        "staging-policy",
 				Environment: EnvironmentStaging,
-				NukeAfter:  86400,
+				NukeAfter:   86400,
 			},
 			want: false,
 		},
 		{
 			name: "test environment",
 			policy: &CleanupPolicy{
-				Name:       "test-policy",
+				Name:        "test-policy",
 				Environment: EnvironmentTest,
-				NukeAfter:  86400,
+				NukeAfter:   86400,
 			},
 			want: true, // Will return true but depends on integration checks
 		},
 		{
 			name: "dev environment",
 			policy: &CleanupPolicy{
-				Name:       "dev-policy",
+				Name:        "dev-policy",
 				Environment: EnvironmentDev,
-				NukeAfter:  86400,
+				NukeAfter:   86400,
 			},
 			want: true, // Will return true but depends on integration checks
 		},

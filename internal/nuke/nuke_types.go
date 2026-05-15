@@ -7,14 +7,14 @@ import (
 )
 
 type NukeOperation struct {
-	ID          string        `json:"id"`
-	Environment string        `json:"environment"`
-	Provider    string        `json:"provider"`
+	ID          string          `json:"id"`
+	Environment string          `json:"environment"`
+	Provider    string          `json:"provider"`
 	Status      OperationStatus `json:"status"`
-	StartedAt   time.Time     `json:"started_at"`
-	CompletedAt *time.Time    `json:"completed_at,omitempty"`
-	Resources   []string      `json:"resources"`
-	Errors      []string      `json:"errors,omitempty"`
+	StartedAt   time.Time       `json:"started_at"`
+	CompletedAt *time.Time      `json:"completed_at,omitempty"`
+	Resources   []string        `json:"resources"`
+	Errors      []string        `json:"errors,omitempty"`
 }
 
 type OperationStatus string
@@ -28,9 +28,9 @@ const (
 )
 
 type NukeManager struct {
-	operations   map[string]*NukeOperation
-	mu           sync.RWMutex
-	providers    map[string]NukeProvider
+	operations map[string]*NukeOperation
+	mu         sync.RWMutex
+	providers  map[string]NukeProvider
 }
 
 type NukeProvider interface {

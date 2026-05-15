@@ -105,7 +105,7 @@ func createMetadataFromPath(path string) types.Composition {
 // extractProviderAndType extracts provider and type from a file path
 func extractProviderAndType(path string) (string, string) {
 	parts := strings.Split(path, string(filepath.Separator))
-	
+
 	var provider, compType string
 	for i, part := range parts {
 		if part == "compositions" && i+1 < len(parts) {

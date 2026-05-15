@@ -11,11 +11,11 @@ import (
 
 // APIKey represents an API key
 type APIKey struct {
-	Key        string
-	UserID     string
-	CreatedAt  time.Time
-	ExpiresAt  time.Time
-	Scopes     []string
+	Key       string
+	UserID    string
+	CreatedAt time.Time
+	ExpiresAt time.Time
+	Scopes    []string
 }
 
 // AuthManager manages authentication

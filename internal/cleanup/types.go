@@ -15,6 +15,7 @@ const (
 	EnvironmentStaging EnvironmentType = "staging"
 	EnvironmentProd    EnvironmentType = "prod"
 )
+
 // CleanupManager manages automated cleanup operations
 type CleanupManager struct {
 	policies     map[string]*CleanupPolicy

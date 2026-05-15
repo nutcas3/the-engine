@@ -21,7 +21,7 @@ func TestNewChecker(t *testing.T) {
 func TestChecker_Check(t *testing.T) {
 	checker := NewChecker("1.0.0")
 	healthResponse := checker.Check()
-	
+
 	if healthResponse.Version != "1.0.0" {
 		t.Errorf("Expected version 1.0.0, got %s", healthResponse.Version)
 	}
@@ -41,7 +41,7 @@ func TestChecker_Check(t *testing.T) {
 
 func TestChecker_calculateOverallStatus(t *testing.T) {
 	checker := NewChecker("1.0.0")
-	
+
 	// Test all healthy
 	healthyComponents := []ComponentHealth{
 		{Name: "test1", Status: StatusHealthy, CheckedAt: time.Now()},
@@ -51,7 +51,7 @@ func TestChecker_calculateOverallStatus(t *testing.T) {
 	if status != "healthy" {
 		t.Errorf("Expected 'healthy', got '%s'", status)
 	}
-	
+
 	// Test degraded
 	degradedComponents := []ComponentHealth{
 		{Name: "test1", Status: StatusHealthy, CheckedAt: time.Now()},
@@ -61,7 +61,7 @@ func TestChecker_calculateOverallStatus(t *testing.T) {
 	if status != "degraded" {
 		t.Errorf("Expected 'degraded', got '%s'", status)
 	}
-	
+
 	// Test unhealthy
 	unhealthyComponents := []ComponentHealth{
 		{Name: "test1", Status: StatusHealthy, CheckedAt: time.Now()},

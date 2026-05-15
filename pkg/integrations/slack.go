@@ -11,20 +11,20 @@ import (
 
 // SlackMessage represents a Slack message
 type SlackMessage struct {
-	Text       string            `json:"text"`
-	Username   string            `json:"username,omitempty"`
-	IconEmoji  string            `json:"icon_emoji,omitempty"`
-	Channel    string            `json:"channel,omitempty"`
+	Text        string            `json:"text"`
+	Username    string            `json:"username,omitempty"`
+	IconEmoji   string            `json:"icon_emoji,omitempty"`
+	Channel     string            `json:"channel,omitempty"`
 	Attachments []SlackAttachment `json:"attachments,omitempty"`
 }
 
 // SlackAttachment represents a Slack message attachment
 type SlackAttachment struct {
-	Color     string            `json:"color"`
-	Title     string            `json:"title"`
-	Text      string            `json:"text"`
-	Fields    []SlackField      `json:"fields,omitempty"`
-	Timestamp int64             `json:"ts,omitempty"`
+	Color     string       `json:"color"`
+	Title     string       `json:"title"`
+	Text      string       `json:"text"`
+	Fields    []SlackField `json:"fields,omitempty"`
+	Timestamp int64        `json:"ts,omitempty"`
 }
 
 // SlackField represents a Slack attachment field
@@ -36,7 +36,7 @@ type SlackField struct {
 
 // SlackClient handles Slack notifications
 type SlackClient struct {
-	client    *http.Client
+	client     *http.Client
 	webhookURL string
 }
 
@@ -80,8 +80,8 @@ func (sc *SlackClient) Send(ctx context.Context, message SlackMessage) error {
 // SendDeploymentNotification sends a deployment notification to Slack
 func (sc *SlackClient) SendDeploymentNotification(ctx context.Context, environment, provider, resourceID string) error {
 	message := SlackMessage{
-		Text:     fmt.Sprintf("Deployment created in %s environment", environment),
-		Username: "Sovereign Engine",
+		Text:      fmt.Sprintf("Deployment created in %s environment", environment),
+		Username:  "Sovereign Engine",
 		IconEmoji: ":rocket:",
 		Attachments: []SlackAttachment{
 			{
@@ -103,8 +103,8 @@ func (sc *SlackClient) SendDeploymentNotification(ctx context.Context, environme
 // SendCleanupNotification sends a cleanup notification to Slack
 func (sc *SlackClient) SendCleanupNotification(ctx context.Context, environment, provider, resourceID string, costSaved float64) error {
 	message := SlackMessage{
-		Text:     fmt.Sprintf("Resource cleaned up in %s environment", environment),
-		Username: "Sovereign Engine",
+		Text:      fmt.Sprintf("Resource cleaned up in %s environment", environment),
+		Username:  "Sovereign Engine",
 		IconEmoji: ":broom:",
 		Attachments: []SlackAttachment{
 			{
@@ -127,8 +127,8 @@ func (sc *SlackClient) SendCleanupNotification(ctx context.Context, environment,
 // SendCostAlert sends a cost alert to Slack
 func (sc *SlackClient) SendCostAlert(ctx context.Context, environment string, currentCost, threshold float64) error {
 	message := SlackMessage{
-		Text:     fmt.Sprintf("Cost alert for %s environment", environment),
-		Username: "Sovereign Engine",
+		Text:      fmt.Sprintf("Cost alert for %s environment", environment),
+		Username:  "Sovereign Engine",
 		IconEmoji: ":moneybag:",
 		Attachments: []SlackAttachment{
 			{

@@ -6,10 +6,10 @@ import (
 
 // OpenAPISpec represents the OpenAPI specification
 type OpenAPISpec struct {
-	OpenAPI string `json:"openapi"`
-	Info    Info   `json:"info"`
+	OpenAPI string   `json:"openapi"`
+	Info    Info     `json:"info"`
 	Servers []Server `json:"servers"`
-	Paths   Paths   `json:"paths"`
+	Paths   Paths    `json:"paths"`
 }
 
 // Info represents API info
@@ -40,16 +40,16 @@ type PathItem struct {
 
 // Operation represents an operation
 type Operation struct {
-	Summary     string              `json:"summary"`
-	Description string              `json:"description"`
-	Responses   map[int]Response   `json:"responses"`
-	Tags        []string            `json:"tags"`
-	Parameters  []Parameter         `json:"parameters"`
+	Summary     string           `json:"summary"`
+	Description string           `json:"description"`
+	Responses   map[int]Response `json:"responses"`
+	Tags        []string         `json:"tags"`
+	Parameters  []Parameter      `json:"parameters"`
 }
 
 // Response represents a response
 type Response struct {
-	Description string `json:"description"`
+	Description string             `json:"description"`
 	Content     map[string]Content `json:"content"`
 }
 
@@ -60,7 +60,7 @@ type Content struct {
 
 // Schema represents a schema
 type Schema struct {
-	Type  string `json:"type"`
+	Type  string  `json:"type"`
 	Items *Schema `json:"items,omitempty"`
 }
 
@@ -133,7 +133,7 @@ func GetSpec() OpenAPISpec {
 							},
 						},
 					},
-					Tags:        []string{"cost"},
+					Tags: []string{"cost"},
 					Parameters: []Parameter{
 						{Name: "team", In: "query", Required: false, Schema: Schema{Type: "string"}},
 					},
