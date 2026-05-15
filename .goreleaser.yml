@@ -31,6 +31,17 @@ checksum:
   name_template: "{{ .ProjectName }}-{{ .Version }}-SHA256SUMS"
   algorithm: sha256
 
+sboms:
+  - id: archives
+    artifacts: archive
+    documents:
+      - "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}.sbom"
+
+signs:
+  - artifacts: archive
+    args: ["sign", "--output", "${signature}", "${artifact}"]
+    signature: "${artifact}.sig"
+
 changelog:
   sort: asc
   use: github
