@@ -16,28 +16,28 @@ func main() {
 	// Initialize handlers
 	h := handlers.NewHandlers(k8sClient)
 
-	// Setup routes with rate limiting for API endpoints
+	// Setup routes
 	http.HandleFunc("/", h.HandleIndex)
-	http.Handle("/api/deployments", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleDeployments)))
-	http.Handle("/api/compositions", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleCompositions)))
-	http.Handle("/api/cost/monthly", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleCostMonthly)))
-	http.Handle("/api/cost/estimate", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleCostEstimate)))
-	http.Handle("/api/health/status", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleHealth)))
+	http.HandleFunc("/api/deployments", h.HandleDeployments)
+	http.HandleFunc("/api/compositions", h.HandleCompositions)
+	http.HandleFunc("/api/cost/monthly", h.HandleCostMonthly)
+	http.HandleFunc("/api/cost/estimate", h.HandleCostEstimate)
+	http.HandleFunc("/api/health/status", h.HandleHealth)
 	http.HandleFunc("/api/stream", h.HandleSSE)
-	http.Handle("/api/swagger", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleSwagger)))
+	http.HandleFunc("/api/swagger", h.HandleSwagger)
 
 	// Alert and cleanup endpoints
-	http.Handle("/api/alerts", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleAlerts)))
-	http.Handle("/api/cleanup/policies", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleCleanupPolicies)))
-	http.Handle("/api/cron/jobs", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleCronJobs)))
-	http.Handle("/api/nuke/operations", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleNukeOperations)))
-	http.Handle("/api/cleanup/shutdown", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleManualShutdown)))
-	http.Handle("/api/nuke/environment", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleManualNuke)))
+	http.HandleFunc("/api/alerts", h.HandleAlerts)
+	http.HandleFunc("/api/cleanup/policies", h.HandleCleanupPolicies)
+	http.HandleFunc("/api/cron/jobs", h.HandleCronJobs)
+	http.HandleFunc("/api/nuke/operations", h.HandleNukeOperations)
+	http.HandleFunc("/api/cleanup/shutdown", h.HandleManualShutdown)
+	http.HandleFunc("/api/nuke/environment", h.HandleManualNuke)
 
 	// Security configuration endpoints
 	http.HandleFunc("/api/security/config", h.HandleSecurityConfigForm)
 	http.HandleFunc("/api/security/docs", h.HandleSecurityDocs)
-	http.Handle("/api/security/config/save", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleSecurityConfigSave)))
+	http.HandleFunc("/api/security/save", h.HandleSecurityConfigSave)
 
 	// Start server
 	fmt.Println("Sovereign Engine UI Backend starting on :8080")
