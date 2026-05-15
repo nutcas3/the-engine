@@ -3,14 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"net"
 
 	"the-engine/internal/finops"
 	providerpkg "the-engine/internal/provider"
 
 	fnv1beta1 "github.com/crossplane/function-sdk-go/proto/v1beta1"
-	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type Function struct {
@@ -18,32 +16,20 @@ type Function struct {
 }
 
 func (f *Function) RunFunction(ctx context.Context, req *fnv1beta1.RunFunctionRequest) (*fnv1beta1.RunFunctionResponse, error) {
-	// Extract values from the request using proto
-	var cloud, tier, region string
-	var budgetLimit float64
-	var manualApproval bool
-
-	// Try to extract from input struct
-	if req.Input != nil {
-		obj := req.Input.AsMap()
-		if spec, ok := obj["spec"].(map[string]any); ok {
-			if val, ok := spec["provider"].(string); ok {
-				cloud = val
-			}
-			if val, ok := spec["tier"].(string); ok {
-				tier = val
-			}
-			if val, ok := spec["region"].(string); ok {
-				region = val
-			}
-			if val, ok := spec["budget_max"].(float64); ok {
-				budgetLimit = val
-			}
-			if val, ok := spec["manual_approval"].(bool); ok {
-				manualApproval = val
-			}
+	// Extract values from the request
+	var observed map[string]any
+	if req.Observed != nil {
+		if len(req.Observed.Resources) > 0 {
+			observed = req.Observed.Resources["managed-compute"].Resource.AsMap()
 		}
 	}
+
+	// Extract intent from the XRD
+	cloud := getString(observed, "spec.provider")
+	tier := getString(observed, "spec.tier")
+	region := getString(observed, "spec.region")
+	budgetLimit := getFloat64(observed, "spec.budget_max")
+	manualApproval := getBool(observed, "spec.manual_approval")
 
 	// Set defaults if not provided
 	if cloud == "" {
@@ -61,10 +47,12 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1beta1.RunFunctionRe
 		currentSpend := finops.GetCurrentSpend(cloud)
 		if currentSpend > budgetLimit {
 			return &fnv1beta1.RunFunctionResponse{
-				Meta: &fnv1beta1.ResponseMeta{
-					Tag: "budget-exceeded",
+				Results: []*fnv1beta1.Result{
+					{
+						Message: fmt.Sprintf("budget exceeded for %s: current spend $%.2f > limit $%.2f", cloud, currentSpend, budgetLimit),
+					},
 				},
-			}, fmt.Errorf("budget exceeded for %s: current spend $%.2f > limit $%.2f", cloud, currentSpend, budgetLimit)
+			}, nil
 		}
 	}
 
@@ -81,21 +69,102 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1beta1.RunFunctionRe
 	desiredResource := processDeployment(ctx, cloud, tier, region, budgetLimit)
 	if desiredResource == nil {
 		return &fnv1beta1.RunFunctionResponse{
-			Meta: &fnv1beta1.ResponseMeta{
-				Tag: "unsupported-provider",
+			Results: []*fnv1beta1.Result{
+				{
+					Message: fmt.Sprintf("unsupported cloud provider: %s", cloud),
+				},
 			},
-		}, fmt.Errorf("unsupported cloud provider: %s", cloud)
+		}, nil
 	}
 
-	// 5. Create response with cost estimation
-	estimatedCost := finops.EstimateCost(cloud, tier)
-	_ = estimatedCost // Will be added to response when proper SDK integration is complete
+	// 5. Set desired resource in response
+	desiredStruct, err := structpb.NewStruct(desiredResource)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert desired resource to struct: %w", err)
+	}
 
-	return &fnv1beta1.RunFunctionResponse{
-		Meta: &fnv1beta1.ResponseMeta{
-			Tag: "success",
+	rsp := &fnv1beta1.RunFunctionResponse{
+		Desired: &fnv1beta1.State{
+			Resources: map[string]*fnv1beta1.Resource{
+				"managed-compute": {
+					Resource: desiredStruct,
+				},
+			},
 		},
-	}, nil
+	}
+
+	// 6. Add cost estimation message
+	estimatedCost := finops.EstimateCost(cloud, tier)
+	rsp.Results = []*fnv1beta1.Result{
+		{
+			Message: fmt.Sprintf("Estimated monthly cost: $%.2f", estimatedCost),
+		},
+	}
+
+	return rsp, nil
+}
+
+// Helper functions to extract values from unstructured objects
+func getString(obj map[string]any, path ...string) string {
+	current := obj
+	for i, key := range path {
+		if i == len(path)-1 {
+			if val, ok := current[key].(string); ok {
+				return val
+			}
+			return ""
+		}
+		if next, ok := current[key].(map[string]any); ok {
+			current = next
+		} else {
+			return ""
+		}
+	}
+	return ""
+}
+
+func getFloat64(obj map[string]any, path ...string) float64 {
+	current := obj
+	for i, key := range path {
+		if i == len(path)-1 {
+			switch val := current[key].(type) {
+			case float64:
+				return val
+			case float32:
+				return float64(val)
+			case int:
+				return float64(val)
+			case int64:
+				return float64(val)
+			default:
+				return 0
+			}
+		}
+		if next, ok := current[key].(map[string]any); ok {
+			current = next
+		} else {
+			return 0
+		}
+	}
+	return 0
+}
+
+func getBool(obj map[string]any, path ...string) bool {
+	current := obj
+	for i, key := range path {
+		if i == len(path)-1 {
+			if val, ok := current[key].(bool); ok {
+				return val
+			}
+			return false
+		}
+		if next, ok := current[key].(map[string]any); ok {
+			current = next
+		} else {
+			return false
+		}
+	}
+	return false
 }
 
 func processDeployment(ctx context.Context, provider string, tier string, region string, budgetLimit float64) map[string]any {
@@ -114,20 +183,5 @@ func processDeployment(ctx context.Context, provider string, tier string, region
 		return providerpkg.MapDigitalOcean(tier, region)
 	default:
 		return nil
-	}
-}
-
-func main() {
-	lis, err := net.Listen("tcp", ":9443")
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-
-	s := grpc.NewServer()
-	fnv1beta1.RegisterFunctionRunnerServiceServer(s, &Function{})
-
-	log.Printf("Sovereign Engine function server listening on :9443")
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
 	}
 }
