@@ -59,58 +59,6 @@ func VerifyImage(ctx context.Context, imageRef string) (*ImageVerificationResult
 	return result, nil
 }
 
-// verifyImageSignature checks if the image has a valid Cosign signature
-func verifyImageSignature(ctx context.Context, imageRef string) (bool, error) {
-	// In production, this would use the actual Cosign library
-	// For now, we'll simulate signature verification
-
-	// Mock: Images with "trusted" in the name are considered signed
-	if strings.Contains(imageRef, "trusted") || strings.Contains(imageRef, "official") {
-		return true, nil
-	}
-
-	// Mock: Images from certain registries are considered signed
-	trustedRegistries := []string{
-		"ghcr.io/",
-		"docker.io/library/",
-		"quay.io/",
-		"gcr.io/",
-	}
-
-	for _, registry := range trustedRegistries {
-		if strings.HasPrefix(imageRef, registry) {
-			return true, nil
-		}
-	}
-
-	// Default to unsigned for unknown images
-	return false, nil
-}
-
-// scanImageCVEs scans an image for known CVEs
-func scanImageCVEs(ctx context.Context, imageRef string) ([]string, error) {
-	// In production, this would integrate with Trivy, Grype, or similar scanners
-	// For now, we'll simulate CVE detection
-
-	// Mock: Images with "vulnerable" in the name have CVEs
-	if strings.Contains(imageRef, "vulnerable") {
-		return []string{
-			"CVE-2024-1234: Critical vulnerability in base image",
-			"CVE-2024-5678: High severity vulnerability in application",
-		}, nil
-	}
-
-	// Mock: Old versions have CVEs
-	if strings.Contains(imageRef, "old") || strings.Contains(imageRef, "legacy") {
-		return []string{
-			"CVE-2023-9999: Medium severity vulnerability in outdated package",
-		}, nil
-	}
-
-	// Default to no CVEs for clean images
-	return []string{}, nil
-}
-
 // isTrustedRegistry checks if the image comes from a trusted registry
 func isTrustedRegistry(imageRef string) bool {
 	trustedRegistries := []string{
