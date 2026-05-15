@@ -1,0 +1,73 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: aws-vpc
+  labels:
+    provider: aws
+    engine.io/composition: networking
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: aws-vpc
+    base:
+      apiVersion: ec2.aws.upbound.io/v1beta1
+      kind: VPC
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.cidrBlock"
+      transforms:
+      - type: map
+        map:
+          default: "10.0.0.0/16"
+  - name: aws-subnet-public
+    base:
+      apiVersion: ec2.aws.upbound.io/v1beta1
+      kind: Subnet
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.availabilityZone"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.cidrBlock"
+      transforms:
+      - type: map
+        map:
+          default: "10.0.1.0/24"
+  - name: aws-subnet-private
+    base:
+      apiVersion: ec2.aws.upbound.io/v1beta1
+      kind: Subnet
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.availabilityZone"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.cidrBlock"
+      transforms:
+      - type: map
+        map:
+          default: "10.0.2.0/24"
+  - name: aws-security-group
+    base:
+      apiVersion: ec2.aws.upbound.io/v1beta1
+      kind: SecurityGroup
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.vpcId"
+      transforms:
+      - type: map
+        map:
+          default: "vpc-id"

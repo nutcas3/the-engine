@@ -1,0 +1,35 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: aws-monitoring
+  labels:
+    provider: aws
+    engine.io/composition: monitoring
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: aws-cloudwatch-log-group
+    base:
+      apiVersion: logs.aws.upbound.io/v1beta1
+      kind: LogGroup
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.name"
+      transforms:
+      - type: map
+        map:
+          default: "/sovereign-engine"
+  - name: aws-cloudwatch-metric-alarm
+    base:
+      apiVersion: cloudwatch.aws.upbound.io/v1beta1
+      kind: MetricAlarm
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
