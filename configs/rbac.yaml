@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: engine-function
+  labels:
+    app: engine-function
+    component: crossplane-function
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: engine-ui
+  labels:
+    app: engine-ui
+    component: ui-backend
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: engine-function-role
+  labels:
+    app: engine-function
+    component: crossplane-function
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apiextensions.crossplane.io"]
+  resources: ["compositions", "compositerevisions"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["engine.io"]
+  resources: ["xcomputes"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: engine-ui-role
+  labels:
+    app: engine-ui
+    component: ui-backend
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apiextensions.crossplane.io"]
+  resources: ["compositions"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: engine-function-binding
+  labels:
+    app: engine-function
+    component: crossplane-function
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: engine-function-role
+subjects:
+- kind: ServiceAccount
+  name: engine-function
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: engine-ui-binding
+  labels:
+    app: engine-ui
+    component: ui-backend
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: engine-ui-role
+subjects:
+- kind: ServiceAccount
+  name: engine-ui
