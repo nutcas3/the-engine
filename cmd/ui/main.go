@@ -34,6 +34,11 @@ func main() {
 	http.Handle("/api/cleanup/shutdown", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleManualShutdown)))
 	http.Handle("/api/nuke/environment", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleManualNuke)))
 
+	// Security configuration endpoints
+	http.HandleFunc("/api/security/config", h.HandleSecurityConfigForm)
+	http.HandleFunc("/api/security/docs", h.HandleSecurityDocs)
+	http.Handle("/api/security/config/save", h.RateLimiter.Middleware(http.HandlerFunc(h.HandleSecurityConfigSave)))
+
 	// Start server
 	fmt.Println("Sovereign Engine UI Backend starting on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
