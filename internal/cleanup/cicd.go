@@ -2,44 +2,62 @@ package cleanup
 
 import (
 	"context"
+	"log"
+	"os"
+	"strings"
 )
+
+// GitHubWorkflowRun represents a GitHub Actions workflow run
+type GitHubWorkflowRun struct {
+	ID         int64  `json:"id"`
+	Status     string `json:"status"`
+	Conclusion string `json:"conclusion"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at"`
+}
+
+// GitHubWorkflowRunsResponse represents the API response
+type GitHubWorkflowRunsResponse struct {
+	TotalCount   int                 `json:"total_count"`
+	WorkflowRuns []GitHubWorkflowRun `json:"workflow_runs"`
+}
 
 // checkTestsComplete checks if all tests have completed for a test environment
 func (cm *CleanupManager) checkTestsComplete(ctx context.Context, environmentName string) bool {
-	// In a real implementation, this would:
-	// 1. Query CI/CD system (Jenkins, GitHub Actions, GitLab CI, etc.)
-	// 2. Check if all test jobs for this environment have completed
-	// 3. Check the test results (success/failure)
-	// 4. Verify no tests are currently running
+	// Check environment variable for CI/CD system type
+	cicdSystem := os.Getenv("CICD_SYSTEM")
+	if cicdSystem == "" {
+		cicdSystem = "github" // default
+	}
 
-	_ = environmentName
-	_ = ctx
-
-	// In production, integrate with your CI/CD system:
-	// - GitHub Actions: Check workflow runs via API
-	// - Jenkins: Check job status via API
-	// - GitLab CI: Check pipeline status via API
-	// - Custom: Check your test runner's API
-
-	// For now, return true to enable the shutdown logic
-	return true
+	switch strings.ToLower(cicdSystem) {
+	case "github":
+		return cm.checkGitHubTestsComplete(ctx, environmentName)
+	case "jenkins":
+		return cm.checkJenkinsTestsComplete(ctx, environmentName)
+	case "gitlab":
+		return cm.checkGitLabTestsComplete(ctx, environmentName)
+	default:
+		log.Printf("Unknown CI/CD system: %s, assuming tests complete", cicdSystem)
+		return true
+	}
 }
 
-// checkNoActivePipelines checks if there are no active CI/CD pipelines for an environment
+// checkNoActivePipelines checks if there are no active CI/CD pipelines
 func (cm *CleanupManager) checkNoActivePipelines(ctx context.Context, environmentName string) bool {
-	// In a real implementation, this would:
-	// 1. Query CI/CD system for active pipelines/jobs
-	// 2. Check if any pipelines are currently running
-	// 3. Verify no deployments are in progress
+	cicdSystem := os.Getenv("CICD_SYSTEM")
+	if cicdSystem == "" {
+		cicdSystem = "github"
+	}
 
-	_ = environmentName
-	_ = ctx
-
-	// In production, integrate with your CI/CD system:
-	// - GitHub Actions: Check for running workflows
-	// - Jenkins: Check for running jobs
-	// - GitLab CI: Check for running pipelines
-	// - Custom: Check your deployment system
-
-	return true
+	switch strings.ToLower(cicdSystem) {
+	case "github":
+		return cm.checkNoActiveGitHubWorkflows(ctx, environmentName)
+	case "jenkins":
+		return cm.checkNoActiveJenkinsJobs(ctx, environmentName)
+	case "gitlab":
+		return cm.checkNoActiveGitLabPipelines(ctx, environmentName)
+	default:
+		return true
+	}
 }
