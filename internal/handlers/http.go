@@ -7,20 +7,28 @@ import (
 	"net/http"
 	"time"
 
+	"the-engine/internal/cache"
+	"the-engine/internal/compositions"
+	"the-engine/internal/docs"
 	"the-engine/internal/finops"
+	"the-engine/internal/health"
 	"the-engine/internal/kubernetes"
 	"the-engine/internal/types"
 )
 
 // Handlers holds the dependencies for HTTP handlers
 type Handlers struct {
-	k8sClient *kubernetes.Client
+	k8sClient     *kubernetes.Client
+	healthChecker *health.Checker
+	cache         *cache.Cache
 }
 
 // NewHandlers creates a new Handlers instance
 func NewHandlers(k8sClient *kubernetes.Client) *Handlers {
 	return &Handlers{
-		k8sClient: k8sClient,
+		k8sClient:     k8sClient,
+		healthChecker: health.NewChecker("1.0.0"),
+		cache:         cache.NewCache(5 * time.Minute),
 	}
 }
 
@@ -33,51 +41,64 @@ func (h *Handlers) HandleIndex(w http.ResponseWriter, r *http.Request) {
 <head>
     <title>Sovereign Engine Dashboard</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
-        .card { margin: 10px 0; padding: 15px; background: #f5f5f5; border-radius: 4px; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        select { padding: 10px; margin: 10px 0; min-width: 200px; }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
-<body>
-    <h1>Sovereign Engine Dashboard</h1>
-    
-    <div class="section">
-        <h2>Composition Selection</h2>
-        <div id="composition-selector">
-            <select id="composition-select">
-                <option value="">Select Composition</option>
-            </select>
-            <button hx-get="/api/compositions" hx-target="#composition-select" hx-swap="innerHTML">Load Compositions</button>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-4xl font-bold text-gray-800 mb-8">Sovereign Engine Dashboard</h1>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Composition Selection</h2>
+            <div id="composition-selector" class="flex gap-4">
+                <select id="composition-select" class="border border-gray-300 rounded-md px-4 py-2 flex-1">
+                    <option value="">Select Composition</option>
+                </select>
+                <button hx-get="/api/compositions" hx-target="#composition-select" hx-swap="innerHTML" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-md transition-colors">
+                    Load Compositions
+                </button>
+            </div>
         </div>
-    </div>
-    
-    <div class="section">
-        <h2>Deployments</h2>
-        <button hx-get="/api/deployments" hx-target="#deployments" hx-swap="innerHTML">Load Deployments</button>
-        <div id="deployments"></div>
-    </div>
-    
-    <div class="section">
-        <h2>Cost Data</h2>
-        <input type="text" id="team-input" placeholder="Enter team name" value="platform">
-        <button hx-get="/api/cost/monthly?team=platform" hx-target="#cost" hx-swap="innerHTML" hx-include="#team-input">Load Cost Data</button>
-        <div id="cost"></div>
-    </div>
-    
-    <div class="section">
-        <h2>Health Status</h2>
-        <button hx-get="/api/health/status" hx-target="#health" hx-swap="innerHTML">Check Health</button>
-        <div id="health"></div>
-    </div>
-    
-    <div class="section">
-        <h2>Real-time Updates</h2>
-        <button onclick="connectSSE()">Connect to SSE Stream</button>
-        <div id="sse-output"></div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Deployments</h2>
+            <button hx-get="/api/deployments" hx-target="#deployments" hx-swap="innerHTML"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-md transition-colors mb-4">
+                Load Deployments
+            </button>
+            <div id="deployments" class="mt-4"></div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Cost Data</h2>
+            <div class="flex gap-4 mb-4">
+                <input type="text" id="team-input" placeholder="Enter team name" value="platform"
+                    class="border border-gray-300 rounded-md px-4 py-2 flex-1">
+                <button hx-get="/api/cost/monthly?team=platform" hx-target="#cost" hx-swap="innerHTML" hx-include="#team-input"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-md transition-colors">
+                    Load Cost Data
+                </button>
+            </div>
+            <div id="cost" class="mt-4"></div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Health Status</h2>
+            <button hx-get="/api/health/status" hx-target="#health" hx-swap="innerHTML"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-md transition-colors mb-4">
+                Check Health
+            </button>
+            <div id="health" class="mt-4"></div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Real-time Updates</h2>
+            <button onclick="connectSSE()"
+                class="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-md transition-colors mb-4">
+                Connect to SSE Stream
+            </button>
+            <div id="sse-output" class="mt-4"></div>
+        </div>
     </div>
     
     <script>
@@ -85,7 +106,9 @@ func (h *Handlers) HandleIndex(w http.ResponseWriter, r *http.Request) {
             const eventSource = new EventSource('/api/stream');
             eventSource.onmessage = function(event) {
                 const data = JSON.parse(event.data);
-                document.getElementById('sse-output').innerHTML += '<div class="card">' + JSON.stringify(data, null, 2) + '</div>';
+                const output = document.getElementById('sse-output');
+                output.innerHTML += '<div class="bg-gray-50 rounded-md p-4 mb-2 border border-gray-200">' + 
+                    JSON.stringify(data, null, 2) + '</div>';
             };
         }
     </script>
@@ -115,23 +138,27 @@ func (h *Handlers) HandleDeployments(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) HandleCompositions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	compositions := []types.Composition{
-		{Name: "aws-compute", Provider: "aws", Type: "compute", Labels: map[string]string{"provider": "aws", "engine.io/composition": "compute"}, CreatedAt: time.Now().Format(time.RFC3339)},
-		{Name: "azure-compute", Provider: "azure", Type: "compute", Labels: map[string]string{"provider": "azure", "engine.io/composition": "compute"}, CreatedAt: time.Now().Format(time.RFC3339)},
-		{Name: "gcp-compute", Provider: "gcp", Type: "compute", Labels: map[string]string{"provider": "gcp", "engine.io/composition": "compute"}, CreatedAt: time.Now().Format(time.RFC3339)},
-		{Name: "hetzner-compute", Provider: "hetzner", Type: "compute", Labels: map[string]string{"provider": "hetzner", "engine.io/composition": "compute"}, CreatedAt: time.Now().Format(time.RFC3339)},
-		{Name: "aws-networking", Provider: "aws", Type: "networking", Labels: map[string]string{"provider": "aws", "engine.io/composition": "networking"}, CreatedAt: time.Now().Format(time.RFC3339)},
-		{Name: "aws-loadbalancer", Provider: "aws", Type: "loadbalancer", Labels: map[string]string{"provider": "aws", "engine.io/composition": "loadbalancer"}, CreatedAt: time.Now().Format(time.RFC3339)},
-		{Name: "aws-storage", Provider: "aws", Type: "storage", Labels: map[string]string{"provider": "aws", "engine.io/composition": "storage"}, CreatedAt: time.Now().Format(time.RFC3339)},
-		{Name: "aws-database", Provider: "aws", Type: "database", Labels: map[string]string{"provider": "aws", "engine.io/composition": "database"}, CreatedAt: time.Now().Format(time.RFC3339)},
-		{Name: "aws-monitoring", Provider: "aws", Type: "monitoring", Labels: map[string]string{"provider": "aws", "engine.io/composition": "monitoring"}, CreatedAt: time.Now().Format(time.RFC3339)},
-		{Name: "shared-monitoring-stack", Provider: "shared", Type: "monitoring", Labels: map[string]string{"provider": "shared", "engine.io/composition": "monitoring"}, CreatedAt: time.Now().Format(time.RFC3339)},
-		{Name: "shared-database-compute", Provider: "shared", Type: "database", Labels: map[string]string{"provider": "shared", "engine.io/composition": "database"}, CreatedAt: time.Now().Format(time.RFC3339)},
-		{Name: "shared-vault", Provider: "shared", Type: "secrets", Labels: map[string]string{"provider": "shared", "engine.io/composition": "secrets"}, CreatedAt: time.Now().Format(time.RFC3339)},
-		{Name: "shared-dns-server", Provider: "shared", Type: "dns", Labels: map[string]string{"provider": "shared", "engine.io/composition": "dns"}, CreatedAt: time.Now().Format(time.RFC3339)},
+	// Try cache first
+	if cached, found := h.cache.Get("compositions"); found {
+		json.NewEncoder(w).Encode(cached)
+		return
 	}
 
-	json.NewEncoder(w).Encode(compositions)
+	compositionList, err := compositions.GetCompositions()
+	if err != nil {
+		http.Error(w, "Failed to load compositions", http.StatusInternalServerError)
+		return
+	}
+
+	h.cache.Set("compositions", compositionList)
+	json.NewEncoder(w).Encode(compositionList)
+}
+
+// HandleSwagger returns OpenAPI specification
+func (h *Handlers) HandleSwagger(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	spec := docs.GetSpec()
+	json.NewEncoder(w).Encode(spec)
 }
 
 // HandleCostMonthly returns cost data
@@ -169,16 +196,10 @@ func (h *Handlers) HandleCostMonthly(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// HandleHealth returns health status
+// HandleHealth returns comprehensive health status
 func (h *Handlers) HandleHealth(w http.ResponseWriter, r *http.Request) {
-	response := types.HealthResponse{
-		Status:    "healthy",
-		Timestamp: time.Now().Format(time.RFC3339),
-		Version:   "1.0.0",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	healthResponse := h.healthChecker.Check()
+	healthResponse.WriteJSON(w)
 }
 
 // HandleSSE provides server-sent events for real-time updates
