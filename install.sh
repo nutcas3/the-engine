@@ -117,39 +117,20 @@ chmod 600 "$CONFIG_DIR/secure.env"
 
 # Install shell completions
 echo "🔧 Installing shell completions..."
+
 # Bash completion
 mkdir -p "$HOME/.local/share/bash-completion/completions"
-cat > "$HOME/.local/share/bash-completion/completions/engine" << 'EOF'
-_engine_completion() {
-    local cur prev commands
-    COMPREPLY=()
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    commands="deploy list status cost help"
-
-    if [[ ${COMP_CWORD} -eq 1 ]]; then
-        COMPREPLY=($(compgen -W "${commands}" -- "${cur}"))
-    fi
-}
-complete -F _engine_completion engine
-EOF
+if [ -f "scripts/completion.bash" ]; then
+    cp scripts/completion.bash "$HOME/.local/share/bash-completion/completions/engine"
+    echo "   Bash completion installed"
+fi
 
 # Zsh completion
 mkdir -p "$HOME/.zfunc"
-cat > "$HOME/.zfunc/_engine" << 'EOF'
-#compdef engine
-_engine() {
-    local -a commands
-    commands=(
-        'deploy:Deploy a composition'
-        'list:List deployments'
-        'status:Check deployment status'
-        'cost:Get cost information'
-        'help:Show help'
-    )
-    _describe 'command' commands
-}
-EOF
+if [ -f "scripts/completion.zsh" ]; then
+    cp scripts/completion.zsh "$HOME/.zfunc/_engine"
+    echo "   Zsh completion installed"
+fi
 
 # Add to zsh path if not already there
 if ! grep -q "fpath=($HOME/.zfunc)" "$HOME/.zshrc" 2>/dev/null; then
