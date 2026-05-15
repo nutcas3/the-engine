@@ -19,6 +19,11 @@ builds:
       - arm64
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    hooks:
+      post:
+        - cmd: upx --best --lzma {{ .Path }}
+          env:
+            - UPX_AVAILABLE=true
 
 archives:
   - format: tar.gz
