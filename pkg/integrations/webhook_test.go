@@ -24,11 +24,11 @@ func TestNewWebhookClient(t *testing.T) {
 func TestWebhookClient_AddEndpoint(t *testing.T) {
 	client := NewWebhookClient()
 	client.AddEndpoint("test", "https://example.com/hook")
-	
+
 	if len(client.endpoints) != 1 {
 		t.Errorf("Expected 1 endpoint, got %d", len(client.endpoints))
 	}
-	
+
 	url, exists := client.endpoints["test"]
 	if !exists {
 		t.Error("Expected endpoint to exist")
@@ -42,7 +42,7 @@ func TestWebhookClient_RemoveEndpoint(t *testing.T) {
 	client := NewWebhookClient()
 	client.AddEndpoint("test", "https://example.com/hook")
 	client.RemoveEndpoint("test")
-	
+
 	if len(client.endpoints) != 0 {
 		t.Errorf("Expected 0 endpoints, got %d", len(client.endpoints))
 	}
@@ -59,19 +59,19 @@ func TestWebhookClient_SendEvent(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	
+
 	client := NewWebhookClient()
 	client.AddEndpoint("test", server.URL)
-	
+
 	event := WebhookEvent{
-		EventType:    "test.event",
+		EventType:   "test.event",
 		Timestamp:   time.Now(),
 		Environment: "test",
 		Provider:    "test",
 		ResourceID:  "test-123",
 		Details:     map[string]interface{}{"key": "value"},
 	}
-	
+
 	err := client.SendEvent(context.Background(), event)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -81,7 +81,7 @@ func TestWebhookClient_SendEvent(t *testing.T) {
 func TestCreateDeploymentEvent(t *testing.T) {
 	details := map[string]interface{}{"tier": "small"}
 	event := CreateDeploymentEvent("test", "aws", "resource-123", details)
-	
+
 	if event.EventType != "deployment.created" {
 		t.Errorf("Expected deployment.created, got %s", event.EventType)
 	}
@@ -99,7 +99,7 @@ func TestCreateDeploymentEvent(t *testing.T) {
 func TestCreateCleanupEvent(t *testing.T) {
 	details := map[string]interface{}{"cost_saved": 10.50}
 	event := CreateCleanupEvent("test", "aws", "resource-123", details)
-	
+
 	if event.EventType != "cleanup.completed" {
 		t.Errorf("Expected cleanup.completed, got %s", event.EventType)
 	}
@@ -108,7 +108,7 @@ func TestCreateCleanupEvent(t *testing.T) {
 func TestCreateCostAlertEvent(t *testing.T) {
 	details := map[string]interface{}{}
 	event := CreateCostAlertEvent("test", 150.0, 100.0, details)
-	
+
 	if event.EventType != "cost.alert" {
 		t.Errorf("Expected cost.alert, got %s", event.EventType)
 	}

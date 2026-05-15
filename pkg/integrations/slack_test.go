@@ -31,12 +31,12 @@ func TestSlackClient_Send(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	
+
 	client := NewSlackClient(server.URL)
 	message := SlackMessage{
 		Text: "Test message",
 	}
-	
+
 	err := client.Send(context.Background(), message)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -48,7 +48,7 @@ func TestSlackClient_SendDeploymentNotification(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	
+
 	client := NewSlackClient(server.URL)
 	err := client.SendDeploymentNotification(context.Background(), "test", "aws", "resource-123")
 	if err != nil {
@@ -61,7 +61,7 @@ func TestSlackClient_SendCleanupNotification(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	
+
 	client := NewSlackClient(server.URL)
 	err := client.SendCleanupNotification(context.Background(), "test", "aws", "resource-123", 50.0)
 	if err != nil {
@@ -74,7 +74,7 @@ func TestSlackClient_SendCostAlert(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	
+
 	client := NewSlackClient(server.URL)
 	err := client.SendCostAlert(context.Background(), "test", 150.0, 100.0)
 	if err != nil {

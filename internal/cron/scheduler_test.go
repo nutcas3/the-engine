@@ -21,7 +21,7 @@ func TestNewScheduler(t *testing.T) {
 
 func TestScheduler_AddJob(t *testing.T) {
 	s := NewScheduler()
-	
+
 	job := &Job{
 		Name:     "test-job",
 		Schedule: "@hourly",
@@ -29,16 +29,16 @@ func TestScheduler_AddJob(t *testing.T) {
 			return nil
 		},
 	}
-	
+
 	err := s.AddJob(job)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	
+
 	if job.ID == "" {
 		t.Error("Expected job ID to be set")
 	}
-	
+
 	if job.NextRun == nil {
 		t.Error("Expected NextRun to be set")
 	}
@@ -46,7 +46,7 @@ func TestScheduler_AddJob(t *testing.T) {
 
 func TestScheduler_RemoveJob(t *testing.T) {
 	s := NewScheduler()
-	
+
 	job := &Job{
 		Name:     "test-job",
 		Schedule: "@hourly",
@@ -54,14 +54,14 @@ func TestScheduler_RemoveJob(t *testing.T) {
 			return nil
 		},
 	}
-	
+
 	s.AddJob(job)
-	
+
 	err := s.RemoveJob(job.ID)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	
+
 	// Remove non-existent job
 	err = s.RemoveJob("non-existent")
 	if err == nil {
@@ -71,7 +71,7 @@ func TestScheduler_RemoveJob(t *testing.T) {
 
 func TestScheduler_GetJob(t *testing.T) {
 	s := NewScheduler()
-	
+
 	job := &Job{
 		Name:     "test-job",
 		Schedule: "@hourly",
@@ -79,9 +79,9 @@ func TestScheduler_GetJob(t *testing.T) {
 			return nil
 		},
 	}
-	
+
 	s.AddJob(job)
-	
+
 	retrieved, err := s.GetJob(job.ID)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -89,7 +89,7 @@ func TestScheduler_GetJob(t *testing.T) {
 	if retrieved.Name != "test-job" {
 		t.Errorf("Expected test-job, got %s", retrieved.Name)
 	}
-	
+
 	// Get non-existent job
 	_, err = s.GetJob("non-existent")
 	if err == nil {
@@ -99,7 +99,7 @@ func TestScheduler_GetJob(t *testing.T) {
 
 func TestScheduler_GetJobs(t *testing.T) {
 	s := NewScheduler()
-	
+
 	job1 := &Job{
 		Name:     "job1",
 		Schedule: "@hourly",
@@ -107,7 +107,7 @@ func TestScheduler_GetJobs(t *testing.T) {
 			return nil
 		},
 	}
-	
+
 	job2 := &Job{
 		Name:     "job2",
 		Schedule: "@daily",
@@ -115,10 +115,10 @@ func TestScheduler_GetJobs(t *testing.T) {
 			return nil
 		},
 	}
-	
+
 	s.AddJob(job1)
 	s.AddJob(job2)
-	
+
 	jobs := s.GetJobs()
 	if len(jobs) != 2 {
 		t.Errorf("Expected 2 jobs, got %d", len(jobs))
@@ -127,7 +127,7 @@ func TestScheduler_GetJobs(t *testing.T) {
 
 func TestScheduler_EnableJob(t *testing.T) {
 	s := NewScheduler()
-	
+
 	job := &Job{
 		Name:     "test-job",
 		Schedule: "@hourly",
@@ -136,14 +136,14 @@ func TestScheduler_EnableJob(t *testing.T) {
 			return nil
 		},
 	}
-	
+
 	s.AddJob(job)
-	
+
 	err := s.EnableJob(job.ID)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	
+
 	retrieved, _ := s.GetJob(job.ID)
 	if !retrieved.Enabled {
 		t.Error("Expected job to be enabled")
@@ -152,7 +152,7 @@ func TestScheduler_EnableJob(t *testing.T) {
 
 func TestScheduler_DisableJob(t *testing.T) {
 	s := NewScheduler()
-	
+
 	job := &Job{
 		Name:     "test-job",
 		Schedule: "@hourly",
@@ -161,14 +161,14 @@ func TestScheduler_DisableJob(t *testing.T) {
 			return nil
 		},
 	}
-	
+
 	s.AddJob(job)
-	
+
 	err := s.DisableJob(job.ID)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	
+
 	retrieved, _ := s.GetJob(job.ID)
 	if retrieved.Enabled {
 		t.Error("Expected job to be disabled")
@@ -180,7 +180,7 @@ func TestScheduler_DisableJob(t *testing.T) {
 
 func TestScheduler_RunJobNow(t *testing.T) {
 	s := NewScheduler()
-	
+
 	job := &Job{
 		Name:     "test-job",
 		Schedule: "@hourly",
@@ -188,14 +188,14 @@ func TestScheduler_RunJobNow(t *testing.T) {
 			return nil
 		},
 	}
-	
+
 	s.AddJob(job)
-	
+
 	err := s.RunJobNow(job.ID)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	
+
 	// Run non-existent job
 	err = s.RunJobNow("non-existent")
 	if err == nil {
@@ -205,7 +205,7 @@ func TestScheduler_RunJobNow(t *testing.T) {
 
 func TestScheduler_calculateNextRun(t *testing.T) {
 	s := NewScheduler()
-	
+
 	tests := []struct {
 		schedule string
 	}{
@@ -216,7 +216,7 @@ func TestScheduler_calculateNextRun(t *testing.T) {
 		{"*/5"},
 		{"*/15"},
 	}
-	
+
 	for _, tt := range tests {
 		nextRun := s.calculateNextRun(tt.schedule)
 		if nextRun == nil {
@@ -233,7 +233,7 @@ func TestDefaultJobs(t *testing.T) {
 	if len(jobs) != 3 {
 		t.Errorf("Expected 3 default jobs, got %d", len(jobs))
 	}
-	
+
 	for _, job := range jobs {
 		if job.Name == "" {
 			t.Error("Expected job name to be set")
