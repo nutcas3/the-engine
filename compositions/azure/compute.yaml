@@ -1,0 +1,59 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: azure-compute
+  labels:
+    provider: azure
+    engine.io/composition: compute
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: azure-vm
+    base:
+      apiVersion: compute.azure.upbound.io/v1beta1
+      kind: LinuxVirtualMachine
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.tier"
+      toFieldPath: "metadata.labels[engine.io/tier]"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.tier"
+      toFieldPath: "spec.forProvider.size"
+      transforms:
+      - type: map
+        map:
+          micro: "Standard_B1s"
+          small: "Standard_B2s"
+          pro: "Standard_D2s_v5"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.location"
+      transforms:
+      - type: map
+        map:
+          "us-east-1": "eastus"
+          "west-europe": "westeurope"
+          "central-europe": "germanywestcentral"
+      defaults:
+        "eastus"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.osDisk.storageAccountType"
+      transforms:
+      - type: map
+        map:
+          "*": "Premium_LRS"
+    connectionDetails:
+    - name: vm-id
+      fromConnectionSecretKeyref:
+        namespace: crossplane-system
+        name: azure-vm-credentials
+        key: vm-id
+    - name: public-ip
+      fromConnectionSecretKeyref:
+        namespace: crossplane-system
+        name: azure-vm-credentials
+        key: public-ip
