@@ -9,7 +9,7 @@ gomod:
 builds:
   - env: ["CGO_ENABLED=0"]
     mod_timestamp: "{{ .CommitTimestamp }}"
-    flags: ["-trimpath"]
+    flags: ["-trimpath", "-gcflags=all=-l"]
     goos:
       - linux
       - darwin
@@ -18,7 +18,12 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -buildid=
+    hooks:
+      post:
+        - cmd: upx --best --lzma {{ .Path }}
+          env:
+            - UPX_AVAILABLE=true
 
 archives:
   - format: tar.gz
