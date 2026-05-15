@@ -1,0 +1,69 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: gcp-network
+  labels:
+    provider: gcp
+    engine.io/composition: networking
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: gcp-network
+    base:
+      apiVersion: compute.gcp.upbound.io/v1beta1
+      kind: Network
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.routingConfig"
+      transforms:
+      - type: map
+        map:
+          default: "[]"
+  - name: gcp-subnet-public
+    base:
+      apiVersion: compute.gcp.upbound.io/v1beta1
+      kind: Subnetwork
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.ipCidrRange"
+      transforms:
+      - type: map
+        map:
+          default: "10.0.1.0/24"
+  - name: gcp-subnet-private
+    base:
+      apiVersion: compute.gcp.upbound.io/v1beta1
+      kind: Subnetwork
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.ipCidrRange"
+      transforms:
+      - type: map
+        map:
+          default: "10.0.2.0/24"
+  - name: gcp-firewall
+    base:
+      apiVersion: compute.gcp.upbound.io/v1beta1
+      kind: Firewall
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"

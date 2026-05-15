@@ -1,0 +1,30 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: gcp-database
+  labels:
+    provider: gcp
+    engine.io/composition: database
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: gcp-cloudsql-instance
+    base:
+      apiVersion: sql.gcp.upbound.io/v1beta1
+      kind: Instance
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.tier"
+      toFieldPath: "spec.forProvider.tier"
+      transforms:
+      - type: map
+        map:
+          micro: "db-f1-micro"
+          small: "db-g1-small"
+          pro: "db-n1-standard-2"

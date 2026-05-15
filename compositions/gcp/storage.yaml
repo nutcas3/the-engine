@@ -1,0 +1,37 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: gcp-storage
+  labels:
+    provider: gcp
+    engine.io/composition: storage
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: gcp-disk
+    base:
+      apiVersion: compute.gcp.upbound.io/v1beta1
+      kind: Disk
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.tier"
+      toFieldPath: "spec.forProvider.sizeGb"
+      transforms:
+      - type: map
+        map:
+          micro: "20"
+          small: "50"
+          pro: "100"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.type"
+      transforms:
+      - type: map
+        map:
+          default: "pd-balanced"

@@ -1,0 +1,30 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: gcp-loadbalancer
+  labels:
+    provider: gcp
+    engine.io/composition: loadbalancer
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: gcp-health-check
+    base:
+      apiVersion: compute.gcp.upbound.io/v1beta1
+      kind: HealthCheck
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+  - name: gcp-backend-service
+    base:
+      apiVersion: compute.gcp.upbound.io/v1beta1
+      kind: BackendService
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
