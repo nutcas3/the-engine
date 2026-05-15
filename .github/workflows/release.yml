@@ -28,14 +28,14 @@ jobs:
         run: make build
 
       - name: Build UI binary
-        run: go build -o bin/engine-ui ./cmd/ui
+        run: make build-web
 
       - name: Create release archive
         run: |
           mkdir -p release
-          cp bin/engine-cli release/
+          cp bin/engine-cli release/engine
           cp bin/engine-fn release/
-          cp bin/engine-ui release/
+          cp bin/engine-web release/
           cp install.sh release/
           tar -czf release/engine-${{ github.ref_name }}.tar.gz -C release .
           zip -r release/engine-${{ github.ref_name }}.zip release/*
