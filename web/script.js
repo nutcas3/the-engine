@@ -77,4 +77,23 @@ setInterval(() => {
         });
 }, 30000);
 
+function showSection(sectionId) {
+    // Hide all sections
+    document.querySelectorAll('.section-content').forEach(section => {
+        section.classList.add('hidden');
+    });
+    
+    // Show selected section
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.remove('hidden');
+    }
+    
+    // Update nav active state
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.target.closest('.nav-item').classList.add('active');
+}
+
 document.addEventListener('DOMContentLoaded', loadTheme);
