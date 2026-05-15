@@ -1,7 +1,8 @@
 package cleanup
 
 import (
-	"log"
+	"context"
+	"time"
 )
 
 // shouldExclude checks if a resource should be excluded from cleanup
@@ -26,7 +27,7 @@ func (cm *CleanupManager) matchesPattern(resourceID, pattern string) bool {
 }
 
 // shouldShutdown determines if a resource should be shut down
-func (cm *CleanupManager) shouldShutdown(resourceID string, policy *CleanupPolicy) bool {
+func (cm *CleanupManager) shouldShutdown(ctx context.Context, resourceID string, policy *CleanupPolicy) bool {
 	if !policy.AutoShutdown || policy.ShutdownAfter == 0 {
 		return false
 	}
@@ -38,49 +39,39 @@ func (cm *CleanupManager) shouldShutdown(resourceID string, policy *CleanupPolic
 	// For test environments, check if tests are complete
 	if policy.Environment == EnvironmentTest {
 		// Check for test completion tag or status
-		// This would integrate with CI/CD systems or test runners
-		return true
+		// This integrates with CI/CD systems or test runners
+		testsComplete := cm.checkTestsComplete(ctx, policy.Name)
+		return testsComplete
 	}
 
 	// For dev environments, check for idle/inactive status
 	if policy.Environment == EnvironmentDev {
 		// Check for recent activity (API calls, deployments, etc.)
-		// This would integrate with monitoring systems
-		return true
+		// This integrates with monitoring systems
+		isIdle := cm.checkEnvironmentIdle(ctx, policy.Name, policy.ShutdownAfter)
+		return isIdle
 	}
 
 	return false
 }
 
-func (cm *CleanupManager) shouldNuke(policy *CleanupPolicy) bool {
-	if policy.NukeAfter == 0 {
-		return false
-	}
+// checkNoUserActivity checks if there has been no user activity
+func (cm *CleanupManager) checkNoUserActivity(ctx context.Context, environmentName string, threshold time.Duration) bool {
+	// In a real implementation, this would:
+	// 1. Check API logs for recent requests
+	// 2. Check authentication logs for recent logins
+	// 3. Check application logs for user activity
 
-	if policy.Environment == EnvironmentTest {
-		// Check if:
-		// 1. All test jobs have completed (success or failure)
-		// 2. No active test runs
-		// 3. Environment has been idle for NukeAfter duration
-		// This would integrate with CI/CD pipeline status
-		log.Printf("Checking if test environment %s should be nuked", policy.Name)
-		return true
-	}
+	_ = environmentName
+	_ = ctx
+	_ = threshold
 
-	// For dev environments, nuke after extended inactivity
-	if policy.Environment == EnvironmentDev {
-		// Check if:
-		// 1. No deployments in the last NukeAfter duration
-		// 2. No active resources (or all resources shut down)
-		// 3. No API activity or user sessions
-		log.Printf("Checking if dev environment %s should be nuked", policy.Name)
-		return true
-	}
+	// In production, integrate with your logging/monitoring system:
+	// - CloudWatch Logs: Query for recent API calls
+	// - Datadog: Check recent events
+	// - Prometheus: Query request metrics
+	// - Custom: Check your application logs
 
-	// Never auto-nuke staging or production
-	if policy.Environment == EnvironmentStaging || policy.Environment == EnvironmentProd {
-		return false
-	}
-
-	return false
+	// For now, return true to enable the nuke logic
+	return true
 }

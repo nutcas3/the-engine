@@ -85,7 +85,7 @@ func (cm *CleanupManager) checkAndCleanup(ctx context.Context) {
 				}
 
 				// Check if resource should be shut down
-				if cm.shouldShutdown(resourceID, policy) {
+				if cm.shouldShutdown(ctx, resourceID, policy) {
 					log.Printf("Shutting down resource %s in %s environment", resourceID, policy.Environment)
 					if err := cleaner.Shutdown(ctx, resourceID); err != nil {
 						log.Printf("Failed to shutdown resource %s: %v", resourceID, err)
@@ -93,7 +93,7 @@ func (cm *CleanupManager) checkAndCleanup(ctx context.Context) {
 				}
 
 				// Check if environment should be nuked
-				if cm.shouldNuke(policy) {
+				if cm.shouldNuke(ctx, policy) {
 					log.Printf("Nuking %s environment", policy.Environment)
 					if err := cleaner.Nuke(ctx, string(policy.Environment)); err != nil {
 						log.Printf("Failed to nuke environment %s: %v", policy.Environment, err)
