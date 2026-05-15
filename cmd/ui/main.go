@@ -23,6 +23,7 @@ func main() {
 	http.HandleFunc("/api/cost/monthly", h.HandleCostMonthly)
 	http.HandleFunc("/api/health/status", h.HandleHealth)
 	http.HandleFunc("/api/stream", h.HandleSSE)
+	http.HandleFunc("/api/swagger", h.HandleSwagger)
 
 	// Start server
 	fmt.Println("Sovereign Engine UI Backend starting on :8080")
