@@ -25,6 +25,177 @@ engine-web
 # Open http://localhost:8080
 ```
 
+## ⚠️ Required Setup: Alerts & Automated Cleanup
+
+**IMPORTANT**: The Engine includes automated cleanup and alerting systems that **MUST** be configured before deploying to dev/test environments.
+
+### Alert System Configuration
+
+The alert system monitors cost thresholds, resource TTLs, and test completion status:
+
+```go
+// Default alert thresholds (customize in your deployment)
+- Cost alerts trigger at 80% of budget (warning) and 90% (critical)
+- TTL alerts trigger when resources exceed configured lifetime
+- Test completion alerts notify when tests finish
+```
+
+### Cleanup Policies (REQUIRED)
+
+**Dev environments** are automatically cleaned up after 8 hours of inactivity and nuked after 24 hours.
+**Test environments** are automatically cleaned up after 2 hours and nuked after 6 hours.
+
+Configure cleanup policies in your deployment:
+
+```yaml
+# Default cleanup policies
+dev-auto-shutdown:
+  environment: dev
+  auto_shutdown: true
+  shutdown_after: 8h
+  nuke_after: 24h
+  exclude_patterns:
+    - "essential-*"
+    - "database-*"
+
+test-auto-cleanup:
+  environment: test
+  auto_shutdown: true
+  shutdown_after: 2h
+  nuke_after: 6h
+  exclude_patterns: []
+```
+
+### Cron Jobs (Auto-configured)
+
+The following cron jobs run automatically:
+- **Hourly**: Dev environment cleanup check
+- **Hourly**: Test environment cleanup check
+- **Daily**: Cost alert verification
+
+### Production Integrations
+
+The cleanup system integrates with external monitoring, CI/CD, and deployment systems for production-ready environment management.
+
+#### Monitoring Integration
+
+Configure monitoring backend via `MONITORING_SYSTEM` environment variable:
+
+```bash
+# Prometheus (default)
+export MONITORING_SYSTEM=prometheus
+export PROMETHEUS_URL=https://prometheus.example.com
+export PROMETHEUS_TOKEN=your_token
+
+# Datadog
+export MONITORING_SYSTEM=datadog
+export DATADOG_API_KEY=your_api_key
+export DATADOG_APP_KEY=your_app_key
+export DATADOG_SITE=datadoghq.com
+
+# CloudWatch
+export MONITORING_SYSTEM=cloudwatch
+export CLOUDWATCH_LOG_GROUP=/aws/lambda/your-app
+```
+
+The monitoring integration checks for:
+- Environment idle time (no API requests, logs, or user activity)
+- Recent user activity before nuking dev environments
+- Test environment activity before cleanup
+
+#### CI/CD Integration
+
+Configure CI/CD system via `CICD_SYSTEM` environment variable:
+
+```bash
+# GitHub Actions
+export CICD_SYSTEM=github
+export GITHUB_TOKEN=ghp_xxxxx
+export GITHUB_REPOSITORY=owner/repo
+
+# Jenkins
+export CICD_SYSTEM=jenkins
+export JENKINS_URL=https://jenkins.example.com
+export JENKINS_USER=username
+export JENKINS_TOKEN=api_token
+
+# GitLab CI
+export CICD_SYSTEM=gitlab
+export GITLAB_URL=https://gitlab.example.com
+export GITLAB_TOKEN=glpat_xxxxx
+export GITLAB_PROJECT_ID=12345
+```
+
+The CI/CD integration checks for:
+- Test completion before cleaning up test environments
+- Active workflows/jobs/pipelines before nuking
+- Integration with GitHub Actions, Jenkins, and GitLab CI APIs
+
+#### Deployment Tracking
+
+Configure deployment system via `DEPLOYMENT_SYSTEM` environment variable:
+
+```bash
+# ArgoCD
+export DEPLOYMENT_SYSTEM=argocd
+export ARGOCD_URL=https://argocd.example.com
+export ARGOCD_TOKEN=your_token
+
+# Flux
+export DEPLOYMENT_SYSTEM=flux
+# Uses Kubernetes client and Flux CRDs
+
+# Kubernetes
+export DEPLOYMENT_SYSTEM=kubernetes
+# Uses Kubernetes client for native deployments
+```
+
+The deployment tracking checks for:
+- Recent deployments before nuking dev environments
+- Sync status and timestamps for ArgoCD applications
+- Flux Kustomization and HelmRelease reconciliation times
+- Kubernetes deployment update timestamps
+
+#### Kubernetes Client Configuration
+
+For Flux and Kubernetes deployment tracking, configure Kubernetes access:
+
+```bash
+# In-cluster configuration (default)
+# Uses service account when running in Kubernetes
+
+# Local development
+export KUBECONFIG=/path/to/kubeconfig
+```
+
+### Resource Exclusion Patterns
+
+Protect critical resources from automatic cleanup using wildcard patterns:
+- `essential-*` - Excludes all resources starting with "essential-"
+- `database-*` - Excludes all database resources
+- `prod-*` - Excludes production resources
+
+### Manual Operations
+
+```bash
+# Manually shutdown a resource
+curl -X POST http://localhost:8080/api/cleanup/shutdown \
+  -d '{"provider":"aws","resource_id":"i-1234567"}'
+
+# Manually nuke an environment
+curl -X POST http://localhost:8080/api/nuke/environment \
+  -d '{"environment":"test","provider":"aws"}'
+
+# View active alerts
+curl http://localhost:8080/api/alerts?environment=dev
+
+# View cleanup policies
+curl http://localhost:8080/api/cleanup/policies
+
+# View scheduled jobs
+curl http://localhost:8080/api/cron/jobs
+```
+
 ### CLI Usage
 
 ```bash
