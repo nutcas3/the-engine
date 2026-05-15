@@ -1,0 +1,28 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: azure-loadbalancer
+  labels:
+    provider: azure
+    engine.io/composition: loadbalancer
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: azure-loadbalancer
+    base:
+      apiVersion: network.azure.upbound.io/v1beta1
+      kind: LoadBalancer
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.location"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.sku"
+      transforms:
+      - type: map
+        map:
+          default: "Standard"

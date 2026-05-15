@@ -1,0 +1,28 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: azure-monitoring
+  labels:
+    provider: azure
+    engine.io/composition: monitoring
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: azure-monitor-workspace
+    base:
+      apiVersion: operationalinsights.azure.upbound.io/v1beta1
+      kind: Workspace
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.location"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.sku"
+      transforms:
+      - type: map
+        map:
+          default: "PerGB2018"
