@@ -1,0 +1,65 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: hetzner-loadbalancer
+  labels:
+    provider: hetzner
+    engine.io/composition: loadbalancer
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: hetzner-loadbalancer
+    base:
+      apiVersion: loadbalancer.hetzner.upbound.io/v1alpha1
+      kind: LoadBalancer
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.location"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.name"
+      transforms:
+      - type: map
+        map:
+          default: "sovereign-engine-lb"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.type"
+      transforms:
+      - type: map
+        map:
+          default: "lb11"
+  - name: hetzner-loadbalancer-service
+    base:
+      apiVersion: loadbalancer.hetzner.upbound.io/v1alpha1
+      kind: LoadBalancerService
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.location"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.protocol"
+      transforms:
+      - type: map
+        map:
+          default: "http"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.listenPort"
+      transforms:
+      - type: map
+        map:
+          default: "80"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.destinationPort"
+      transforms:
+      - type: map
+        map:
+          default: "8080"
