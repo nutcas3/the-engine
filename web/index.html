@@ -229,6 +229,90 @@
             </div>
         </div>
 
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mt-8">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <svg class="w-6 h-6 text-pink-500 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Real-time Updates
+                </h2>
+                <button onclick="connectSSE()"
+                    class="bg-pink-600 hover:bg-pink-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Connect SSE
+                </button>
+            </div>
+            <div id="sse-output" class="p-6 min-h-[200px]">
+                <div class="text-gray-500 dark:text-gray-400 text-center py-8">Click Connect to start real-time updates</div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mt-8">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <svg class="w-6 h-6 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    API Documentation
+                </h2>
+                <button hx-get="/api/swagger" hx-target="#swagger" hx-swap="innerHTML"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Load
+                </button>
+            </div>
+            <div id="swagger" class="p-6 min-h-[200px]">
+                <div class="text-gray-500 dark:text-gray-400 text-center py-8">Click Load to view API documentation</div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mt-8">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <svg class="w-6 h-6 text-pink-500 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Real-time Updates
+                </h2>
+                <button onclick="connectSSE()"
+                    class="bg-pink-600 hover:bg-pink-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Connect SSE
+                </button>
+            </div>
+            <div id="sse-output" class="p-6 min-h-[200px]">
+                <div class="text-gray-500 dark:text-gray-400 text-center py-8">Click Connect to start real-time updates</div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mt-8">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <svg class="w-6 h-6 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    API Documentation
+                </h2>
+                <button hx-get="/api/swagger" hx-target="#swagger" hx-swap="innerHTML"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Load
+                </button>
+            </div>
+            <div id="swagger" class="p-6 min-h-[200px]">
+                <div class="text-gray-500 dark:text-gray-400 text-center py-8">Click Load to view API documentation</div>
+            </div>
+        </div>
+
         <div class="mt-8 text-center text-gray-500 dark:text-gray-500 text-sm">
             <p>Sovereign Engine v1.0.0 | Multi-Cloud Infrastructure Platform</p>
             <p class="mt-2">Built with HTMX + Tailwind v4</p>
