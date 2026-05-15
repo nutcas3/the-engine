@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: engine-function
+  labels:
+    app: engine-function
+    component: crossplane-function
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9443
+    targetPort: 9443
+    protocol: TCP
+    name: grpc
+  selector:
+    app: engine-function

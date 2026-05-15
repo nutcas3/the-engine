@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: engine-config
+  labels:
+    app: engine
+    component: configuration
+data:
+  PORT: "8080"
+  LOG_LEVEL: "info"
+  CACHE_TTL: "5m"
+  HEALTH_CHECK_INTERVAL: "30s"
