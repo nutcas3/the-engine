@@ -11,7 +11,7 @@ import (
 )
 
 // checkGitHubTestsComplete checks GitHub Actions for test completion
-func (cm *CleanupManager) checkGitHubTestsComplete(ctx context.Context, environmentName string) bool {
+func (cm *CleanupManager) checkGitHubTestsComplete(ctx context.Context, _ string) bool {
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
 		log.Printf("GITHUB_TOKEN not set, cannot check test status")
@@ -56,7 +56,7 @@ func (cm *CleanupManager) checkGitHubTestsComplete(ctx context.Context, environm
 
 	for _, run := range result.WorkflowRuns {
 		if run.Status != "completed" {
-			log.Printf("Found incomplete workflow run %d for environment %s", run.ID, environmentName)
+			log.Printf("Found incomplete workflow run %d", run.ID)
 			return false
 		}
 		if run.Conclusion == "failure" || run.Conclusion == "cancelled" {
@@ -68,7 +68,7 @@ func (cm *CleanupManager) checkGitHubTestsComplete(ctx context.Context, environm
 }
 
 // checkNoActiveGitHubWorkflows checks for running GitHub workflows
-func (cm *CleanupManager) checkNoActiveGitHubWorkflows(ctx context.Context, environmentName string) bool {
+func (cm *CleanupManager) checkNoActiveGitHubWorkflows(ctx context.Context, _ string) bool {
 	token := os.Getenv("GITHUB_TOKEN")
 	repo := os.Getenv("GITHUB_REPOSITORY")
 

@@ -11,7 +11,7 @@ import (
 )
 
 // checkGitLabTestsComplete checks GitLab CI for test completion
-func (cm *CleanupManager) checkGitLabTestsComplete(ctx context.Context, environmentName string) bool {
+func (cm *CleanupManager) checkGitLabTestsComplete(ctx context.Context) bool {
 	gitlabURL := os.Getenv("GITLAB_URL")
 	gitlabToken := os.Getenv("GITLAB_TOKEN")
 	projectID := os.Getenv("GITLAB_PROJECT_ID")

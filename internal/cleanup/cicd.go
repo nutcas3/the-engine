@@ -36,7 +36,7 @@ func (cm *CleanupManager) checkTestsComplete(ctx context.Context, environmentNam
 	case "jenkins":
 		return cm.checkJenkinsTestsComplete(ctx, environmentName)
 	case "gitlab":
-		return cm.checkGitLabTestsComplete(ctx, environmentName)
+		return cm.checkGitLabTestsComplete(ctx)
 	default:
 		log.Printf("Unknown CI/CD system: %s, assuming tests complete", cicdSystem)
 		return true
