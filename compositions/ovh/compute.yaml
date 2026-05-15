@@ -1,0 +1,59 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: ovh-compute
+  labels:
+    provider: ovh
+    engine.io/composition: compute
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: ovh-instance
+    base:
+      apiVersion: instance.ovh.upbound.io/v1beta1
+      kind: Instance
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.tier"
+      toFieldPath: "metadata.labels[engine.io/tier]"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.tier"
+      toFieldPath: "spec.forProvider.flavor"
+      transforms:
+      - type: map
+        map:
+          micro: "s1-2"
+          small: "s1-4"
+          pro: "s1-8"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+      transforms:
+      - type: map
+        map:
+          "us-east-1": "US-EAST-VA-1"
+          "europe": "EU-West-1"
+          "canada": "CA-East-1"
+      defaults:
+        "EU-West-1"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.image"
+      transforms:
+      - type: map
+        map:
+          "*": "Ubuntu 22.04"
+    connectionDetails:
+    - name: instance-id
+      fromConnectionSecretKeyref:
+        namespace: crossplane-system
+        name: ovh-instance-credentials
+        key: instance-id
+    - name: public-ip
+      fromConnectionSecretKeyref:
+        namespace: crossplane-system
+        name: ovh-instance-credentials
+        key: public-ip

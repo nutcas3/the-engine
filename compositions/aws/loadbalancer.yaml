@@ -1,0 +1,44 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: aws-loadbalancer
+  labels:
+    provider: aws
+    engine.io/composition: loadbalancer
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: aws-alb
+    base:
+      apiVersion: elbv2.aws.upbound.io/v1beta1
+      kind: LoadBalancer
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.type"
+      transforms:
+      - type: map
+        map:
+          default: "application"
+  - name: aws-target-group
+    base:
+      apiVersion: elbv2.aws.upbound.io/v1beta1
+      kind: TargetGroup
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.port"
+      transforms:
+      - type: map
+        map:
+          default: "80"

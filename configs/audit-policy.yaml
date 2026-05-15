@@ -1,0 +1,57 @@
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+  # Log all requests at the Metadata level
+  - level: Metadata
+    verbs: ["get", "list", "watch"]
+    resources:
+    - group: ""
+      resources: ["configmaps", "secrets", "pods", "services"]
+  
+  # Log request/response body for Crossplane resources
+  - level: RequestResponse
+    verbs: ["create", "update", "delete", "patch"]
+    resources:
+    - group: "engine.io"
+      resources: ["*"]
+    - group: "crossplane.io"
+      resources: ["*"]
+  
+  # Log all changes to deployments and compositions
+  - level: Request
+    verbs: ["create", "update", "delete", "patch"]
+    resources:
+    - group: "apps"
+      resources: ["deployments", "statefulsets"]
+    - group: ""
+      resources: ["pods"]
+  
+  # Log all authentication events
+  - level: Request
+    verbs: ["create"]
+    resources:
+    - group: "authentication.k8s.io"
+      resources: ["tokenreviews"]
+  
+  # Log authorization decisions
+  - level: Request
+    verbs: ["create"]
+    resources:
+    - group: "authorization.k8s.io"
+      resources: ["subjectaccessreviews"]
+  
+  # Log all namespace changes
+  - level: RequestResponse
+    verbs: ["create", "delete", "patch"]
+    resources:
+    - group: ""
+      resources: ["namespaces"]
+  
+  # Omit status updates to reduce log volume
+  - level: None
+    verbs: ["update", "patch"]
+    resources:
+    - group: ""
+      resources: ["pods/status", "services/status"]
+    - group: "apps"
+      resources: ["deployments/status"]

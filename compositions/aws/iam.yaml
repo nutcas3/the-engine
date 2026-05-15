@@ -1,0 +1,26 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: aws-iam
+  labels:
+    provider: aws
+    engine.io/composition: iam
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: aws-iam-role
+    base:
+      apiVersion: iam.aws.upbound.io/v1beta1
+      kind: Role
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.name"
+      transforms:
+      - type: map
+        map:
+          default: "sovereign-engine-role"

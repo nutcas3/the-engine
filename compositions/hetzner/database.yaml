@@ -1,0 +1,30 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: hetzner-database
+  labels:
+    provider: hetzner
+    engine.io/composition: database
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: postgresql-instance
+    base:
+      apiVersion: hetzner.upbound.io/v1alpha1
+      kind: Server
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.location"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.tier"
+      toFieldPath: "spec.forProvider.serverType"
+      transforms:
+      - type: map
+        map:
+          micro: "cx21"
+          small: "cpx21"
+          pro: "cpx31"

@@ -1,0 +1,21 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: gcp-monitoring
+  labels:
+    provider: gcp
+    engine.io/composition: monitoring
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: gcp-logging-sink
+    base:
+      apiVersion: logging.gcp.upbound.io/v1beta1
+      kind: LogSink
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"

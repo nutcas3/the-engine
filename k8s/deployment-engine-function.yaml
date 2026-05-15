@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: engine-function
+  labels:
+    app: engine-function
+    component: crossplane-function
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: engine-function
+  template:
+    metadata:
+      labels:
+        app: engine-function
+        component: crossplane-function
+    spec:
+      containers:
+      - name: engine-function
+        image: engine-function:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9443
+          name: grpc
+          protocol: TCP
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        env:
+        - name: KUBECONFIG
+          value: "/etc/kubeconfig/config"
+        volumeMounts:
+        - name: kubeconfig
+          mountPath: /etc/kubeconfig
+          readOnly: true
+      volumes:
+      - name: kubeconfig
+        configMap:
+          name: kubeconfig
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: engine-function-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: engine-function
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

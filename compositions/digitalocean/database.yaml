@@ -1,0 +1,30 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: digitalocean-database
+  labels:
+    provider: digitalocean
+    engine.io/composition: database
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: postgresql-instance
+    base:
+      apiVersion: digitalocean.upbound.io/v1beta1
+      kind: Droplet
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.tier"
+      toFieldPath: "spec.forProvider.size"
+      transforms:
+      - type: map
+        map:
+          micro: "s-1vcpu-1gb"
+          small: "s-1vcpu-2gb"
+          pro: "c-2vcpu-4gb"

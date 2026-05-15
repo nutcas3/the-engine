@@ -1,0 +1,59 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: gcp-compute
+  labels:
+    provider: gcp
+    engine.io/composition: compute
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: gcp-instance
+    base:
+      apiVersion: compute.gcp.upbound.io/v1beta1
+      kind: Instance
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.tier"
+      toFieldPath: "metadata.labels[engine.io/tier]"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.tier"
+      toFieldPath: "spec.forProvider.machineType"
+      transforms:
+      - type: map
+        map:
+          micro: "e2-micro"
+          small: "e2-small"
+          pro: "n2-standard-2"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.zone"
+      transforms:
+      - type: map
+        map:
+          "us-east-1": "us-east1-b"
+          "us-west-2": "us-west2-a"
+          "europe-west1": "europe-west1-b"
+      defaults:
+        "us-east1-b"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.bootDisk.initializeParams.image"
+      transforms:
+      - type: map
+        map:
+          "*": "projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20240101"
+    connectionDetails:
+    - name: instance-id
+      fromConnectionSecretKeyref:
+        namespace: crossplane-system
+        name: gcp-instance-credentials
+        key: instance-id
+    - name: public-ip
+      fromConnectionSecretKeyref:
+        namespace: crossplane-system
+        name: gcp-instance-credentials
+        key: public-ip

@@ -1,0 +1,13 @@
+services:
+  web:
+    build:
+      context: ./build/docker/${WEBSERVER:-caddy}
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      - SERVER_NAME=${SERVER_NAME:-localhost}
+      - PORT=${PORT:-80}
+      - HTTPS_PORT=${HTTPS_PORT:-443}
+    restart: unless-stopped

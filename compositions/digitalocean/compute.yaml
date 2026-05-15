@@ -1,0 +1,60 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: digitalocean-compute
+  labels:
+    provider: digitalocean
+    engine.io/composition: compute
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: do-droplet
+    base:
+      apiVersion: digitalocean.upbound.io/v1beta1
+      kind: Droplet
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.tier"
+      toFieldPath: "metadata.labels[engine.io/tier]"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.tier"
+      toFieldPath: "spec.forProvider.size"
+      transforms:
+      - type: map
+        map:
+          micro: "s-1vcpu-1gb"
+          small: "s-1vcpu-2gb"
+          pro: "s-2vcpu-4gb"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+      transforms:
+      - type: map
+        map:
+          "us-east-1": "nyc1"
+          "us-west": "sfo2"
+          "europe": "ams3"
+          "asia": "sgp1"
+      defaults:
+        "nyc1"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.image"
+      transforms:
+      - type: map
+        map:
+          "*": "ubuntu-22-04-x64"
+    connectionDetails:
+    - name: droplet-id
+      fromConnectionSecretKeyref:
+        namespace: crossplane-system
+        name: do-droplet-credentials
+        key: droplet-id
+    - name: public-ip
+      fromConnectionSecretKeyref:
+        namespace: crossplane-system
+        name: do-droplet-credentials
+        key: public-ip

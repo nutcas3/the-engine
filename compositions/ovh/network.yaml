@@ -1,0 +1,30 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: ovh-network
+  labels:
+    provider: ovh
+    engine.io/composition: networking
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: ovh-private-network
+    base:
+      apiVersion: ovhcloud.upbound.io/v1beta1
+      kind: PrivateNetwork
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+  - name: ovh-firewall
+    base:
+      apiVersion: ovhcloud.upbound.io/v1beta1
+      kind: NetworkFirewall
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
