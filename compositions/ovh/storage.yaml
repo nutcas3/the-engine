@@ -1,0 +1,30 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: ovh-storage
+  labels:
+    provider: ovh
+    engine.io/composition: storage
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: ovh-volume
+    base:
+      apiVersion: ovhcloud.upbound.io/v1beta1
+      kind: Volume
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "spec.tier"
+      toFieldPath: "spec.forProvider.size"
+      transforms:
+      - type: map
+        map:
+          micro: "20"
+          small: "50"
+          pro: "100"

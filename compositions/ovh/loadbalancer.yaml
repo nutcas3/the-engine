@@ -1,0 +1,21 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: ovh-loadbalancer
+  labels:
+    provider: ovh
+    engine.io/composition: loadbalancer
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: ovh-loadbalancer
+    base:
+      apiVersion: ovhcloud.upbound.io/v1beta1
+      kind: IPLoadBalancing
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
