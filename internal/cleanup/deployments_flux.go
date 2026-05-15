@@ -53,18 +53,18 @@ func (cm *CleanupManager) fluxResourcesIdle(ctx context.Context, client dynamic.
 }
 
 func fluxResourceUpdatedRecently(obj *unstructured.Unstructured, cutoff time.Time) bool {
-	status, ok := obj.Object["status"].(map[string]interface{})
+	status, ok := obj.Object["status"].(map[string]any)
 	if !ok {
 		return false
 	}
 
-	conditions, ok := status["conditions"].([]interface{})
+	conditions, ok := status["conditions"].([]any)
 	if !ok {
 		return false
 	}
 
 	for _, cond := range conditions {
-		condition, ok := cond.(map[string]interface{})
+		condition, ok := cond.(map[string]any)
 		if !ok {
 			continue
 		}

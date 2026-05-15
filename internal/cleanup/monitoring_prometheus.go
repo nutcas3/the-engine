@@ -44,7 +44,7 @@ func (cm *CleanupManager) checkPrometheusIdle(ctx context.Context, env string, t
 	var result struct {
 		Data struct {
 			Result []struct {
-				Value []interface{} `json:"value"`
+				Value []any `json:"value"`
 			} `json:"result"`
 		} `json:"data"`
 	}

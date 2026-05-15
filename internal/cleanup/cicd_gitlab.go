@@ -90,7 +90,7 @@ func (cm *CleanupManager) checkNoActiveGitLabPipelines(ctx context.Context, envi
 	}
 	defer resp.Body.Close()
 
-	var pipelines []interface{}
+	var pipelines []any
 	if err := json.NewDecoder(resp.Body).Decode(&pipelines); err != nil {
 		return false
 	}
