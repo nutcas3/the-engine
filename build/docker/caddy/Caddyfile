@@ -1,0 +1,9 @@
+{
+    :80 {
+        respond "Sovereign Engine - Caddy Web Server"
+    }
+    
+    :443 {
+        respond "Sovereign Engine - Caddy Web Server (HTTPS)"
+    }
+}
