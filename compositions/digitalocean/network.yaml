@@ -1,0 +1,37 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: digitalocean-network
+  labels:
+    provider: digitalocean
+    engine.io/composition: networking
+spec:
+  compositeTypeRef:
+    apiVersion: engine.io/v1alpha1
+    kind: XCompute
+  resources:
+  - name: digitalocean-vpc
+    base:
+      apiVersion: digitalocean.upbound.io/v1beta1
+      kind: VPC
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
+    - type: FromCompositeFieldPath
+      fromFieldPath: "metadata.name"
+      toFieldPath: "spec.forProvider.ipRange"
+      transforms:
+      - type: map
+        map:
+          default: "10.0.0.0/16"
+  - name: digitalocean-firewall
+    base:
+      apiVersion: digitalocean.upbound.io/v1beta1
+      kind: Firewall
+    patches:
+    - fromFieldPath: "spec.provider"
+      toFieldPath: "metadata.labels[engine.io/provider]"
+    - fromFieldPath: "spec.region"
+      toFieldPath: "spec.forProvider.region"
