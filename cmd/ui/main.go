@@ -6,69 +6,22 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"the-engine/internal/finops"
-
-	"path/filepath"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
+	"the-engine/internal/kubernetes"
+	"the-engine/internal/types"
 )
-
-type Deployment struct {
-	ID        string    `json:"id"`
-	Provider  string    `json:"provider"`
-	Tier      string    `json:"tier"`
-	Region    string    `json:"region"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-type CostResponse struct {
-	Team         string  `json:"team"`
-	MonthlySpend float64 `json:"monthly_spend"`
-	Budget       float64 `json:"budget"`
-	Utilization  float64 `json:"utilization"`
-	LastUpdated  string  `json:"last_updated"`
-}
-
-type HealthResponse struct {
-	Status    string `json:"status"`
-	Timestamp string `json:"timestamp"`
-	Version   string `json:"version"`
-}
-
-type Composition struct {
-	Name      string            `json:"name"`
-	Provider  string            `json:"provider"`
-	Type      string            `json:"type"`
-	Labels    map[string]string `json:"labels"`
-	CreatedAt string            `json:"created_at"`
-}
-
-var k8sClient *kubernetes.Clientset
-var dynamicClient dynamic.Interface
 
 func main() {
 	// Initialize Kubernetes client
-	var err error
-	k8sClient, err = getK8sClient()
-	dynamicClient = nil
-	if err != nil {
-		log.Printf("Warning: Could not connect to Kubernetes: %v (using mock data)", err)
-		k8sClient = nil
-	} else {
-		log.Println("Connected to Kubernetes successfully")
-	}
+	k8sClient := kubernetes.NewClientOrMock()
 
 	// Setup routes
 	http.HandleFunc("/", handleIndex)
-	http.HandleFunc("/api/deployments", handleDeployments)
+	http.HandleFunc("/api/deployments", func(w http.ResponseWriter, r *http.Request) {
+		handleDeployments(w, r, k8sClient)
+	})
 	http.HandleFunc("/api/compositions", handleCompositions)
 	http.HandleFunc("/api/cost/monthly", handleCostMonthly)
 	http.HandleFunc("/api/health/status", handleHealth)
@@ -77,20 +30,6 @@ func main() {
 	// Start server
 	fmt.Println("Sovereign Engine UI Backend starting on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
-}
-
-func getK8sClient() (*kubernetes.Clientset, error) {
-	kubeconfig := os.Getenv("KUBECONFIG")
-	if kubeconfig == "" {
-		kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
-	}
-
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return kubernetes.NewForConfig(config)
 }
 
 func handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -162,12 +101,12 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 `)
 }
 
-func handleDeployments(w http.ResponseWriter, r *http.Request) {
+func handleDeployments(w http.ResponseWriter, r *http.Request, k8sClient *kubernetes.Client) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// Try to get real deployments from Kubernetes if available
 	if k8sClient != nil {
-		realDeployments, err := getK8sDeployments()
+		realDeployments, err := k8sClient.GetDeployments()
 		if err == nil && len(realDeployments) > 0 {
 			json.NewEncoder(w).Encode(realDeployments)
 			return
@@ -175,13 +114,13 @@ func handleDeployments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fallback to empty array if no data
-	json.NewEncoder(w).Encode([]Deployment{})
+	json.NewEncoder(w).Encode([]types.Deployment{})
 }
 
 func handleCompositions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	compositions := []Composition{
+	compositions := []types.Composition{
 		{Name: "aws-compute", Provider: "aws", Type: "compute", Labels: map[string]string{"provider": "aws", "engine.io/composition": "compute"}, CreatedAt: time.Now().Format(time.RFC3339)},
 		{Name: "azure-compute", Provider: "azure", Type: "compute", Labels: map[string]string{"provider": "azure", "engine.io/composition": "compute"}, CreatedAt: time.Now().Format(time.RFC3339)},
 		{Name: "gcp-compute", Provider: "gcp", Type: "compute", Labels: map[string]string{"provider": "gcp", "engine.io/composition": "compute"}, CreatedAt: time.Now().Format(time.RFC3339)},
@@ -198,59 +137,6 @@ func handleCompositions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(compositions)
-}
-
-func getK8sDeployments() ([]Deployment, error) {
-	if k8sClient == nil {
-		return nil, fmt.Errorf("kubernetes client not initialized")
-	}
-
-	// Try to get XCompute resources from Crossplane namespace
-	// This is a simplified version - in production you'd use the Crossplane CRD client
-	namespaces, err := k8sClient.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	var k8sDeployments []Deployment
-	for _, ns := range namespaces.Items {
-		pods, err := k8sClient.CoreV1().Pods(ns.Name).List(context.Background(), metav1.ListOptions{})
-		if err != nil {
-			continue
-		}
-
-		for _, pod := range pods.Items {
-			provider := pod.Labels["engine.io/provider"]
-			tier := pod.Labels["engine.io/tier"]
-			region := pod.Labels["topology.kubernetes.io/zone"]
-
-			if provider == "" {
-				provider = "unknown"
-			}
-			if tier == "" {
-				tier = "unknown"
-			}
-			if region == "" {
-				region = "default"
-			}
-
-			status := "running"
-			if pod.Status.Phase != "Running" {
-				status = string(pod.Status.Phase)
-			}
-
-			k8sDeployments = append(k8sDeployments, Deployment{
-				ID:        pod.Name,
-				Provider:  provider,
-				Tier:      tier,
-				Region:    region,
-				Status:    status,
-				CreatedAt: pod.CreationTimestamp.Time,
-			})
-		}
-	}
-
-	return k8sDeployments, nil
 }
 
 func handleCostMonthly(w http.ResponseWriter, r *http.Request) {
@@ -275,7 +161,7 @@ func handleCostMonthly(w http.ResponseWriter, r *http.Request) {
 		utilization = (currentSpend / budget) * 100
 	}
 
-	response := CostResponse{
+	response := types.CostResponse{
 		Team:         team,
 		MonthlySpend: currentSpend,
 		Budget:       budget,
@@ -288,7 +174,7 @@ func handleCostMonthly(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
-	response := HealthResponse{
+	response := types.HealthResponse{
 		Status:    "healthy",
 		Timestamp: time.Now().Format(time.RFC3339),
 		Version:   "1.0.0",
@@ -318,7 +204,7 @@ func handleSSE(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case <-ticker.C:
-			health := HealthResponse{
+			health := types.HealthResponse{
 				Status:    "healthy",
 				Timestamp: time.Now().Format(time.RFC3339),
 				Version:   "1.0.0",
