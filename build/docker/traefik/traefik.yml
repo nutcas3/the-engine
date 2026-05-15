@@ -1,0 +1,21 @@
+api:
+  dashboard: true
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+providers:
+  file:
+    filename: /etc/traefik/dynamic.yml
+
+http:
+  routers:
+    api:
+      rule: "PathPrefix(`/api`)"
+      service: "api@internal"
+      entryPoints:
+        - web
