@@ -23,11 +23,13 @@ type Composition struct {
 
 // CostResponse represents cost information
 type CostResponse struct {
-	Team         string  `json:"team"`
-	MonthlySpend float64 `json:"monthly_spend"`
-	Budget       float64 `json:"budget"`
-	Utilization  float64 `json:"utilization"`
-	LastUpdated  string  `json:"last_updated"`
+	Team            string             `json:"team"`
+	MonthlySpend    float64            `json:"monthly_spend"`
+	Budget          float64            `json:"budget"`
+	Utilization     float64            `json:"utilization"`
+	LastUpdated     string             `json:"last_updated"`
+	Recommendations []string           `json:"recommendations"`
+	ProviderCosts   map[string]float64 `json:"provider_costs"`
 }
 
 // HealthResponse represents health status
