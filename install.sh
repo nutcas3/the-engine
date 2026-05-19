@@ -8,7 +8,7 @@ set -e
 VERSION="1.0.0"
 INSTALL_DIR="/usr/local/bin"
 CONFIG_DIR="$HOME/.engine"
-REPO_URL="https://github.com/yourusername/the-engine"
+REPO_URL="https://github.com/nutcas3/the-engine"
 BINARY_BASE_URL="$REPO_URL/releases/download/v${VERSION}"
 
 echo "🚀 Installing Sovereign Engine v${VERSION}"
